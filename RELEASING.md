@@ -76,19 +76,20 @@ dist plan
 
 ### 3. Publish library crates to crates.io
 
-Publish in dependency order. Wait roughly a minute between each step
-for the crates.io index to refresh.
+Handled automatically by `publish-crates.yml` on tag push (parallel
+to the binary release). The workflow publishes the five library
+crates in dependency order with a 30 s pause between each step for
+the crates.io sparse index to refresh.
+
+To run it manually (e.g. for a dry-run preview) use:
 
 ```bash
-cargo publish -p squick-core
-cargo publish -p squick-dict
-cargo publish -p squick-format
-cargo publish -p squick-watch
-cargo publish -p squick-cli
+gh workflow run publish-crates.yml -f dry_run=true
 ```
 
-After this completes, `cargo install squick-cli` works for any Rust
-user. The published binary is also discoverable as `squick`.
+After the workflow completes, `cargo install squick-cli` works for
+any Rust user. The published binary is also discoverable as
+`squick`.
 
 ### 4. Cut a GitHub release
 

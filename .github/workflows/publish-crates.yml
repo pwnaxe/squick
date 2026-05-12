@@ -1,0 +1,86 @@
+# Publishes the Squick library crates to crates.io in dependency order
+# after a SemVer tag is pushed. Runs in parallel with `release.yml` and
+# the publish-{npm,pypi}.yml workflows; there is no coupling between
+# crates.io and the binary distribution channels.
+name: publish-crates
+on:
+  push:
+    tags:
+      - "**[0-9]+.[0-9]+.[0-9]+*"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Run cargo publish with --dry-run (no upload)"
+        required: false
+        default: "false"
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+      # Crates.io's sparse index lets the resolver see a freshly
+      # published crate within seconds rather than minutes.
+      CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          rustc --version
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            target/
+          key: ${{ runner.os }}-cargo-publish-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Determine publish mode
+        id: mode
+        run: |
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            echo "flag=--dry-run --allow-dirty" >> "$GITHUB_OUTPUT"
+            echo "Running in DRY-RUN mode"
+          else
+            echo "flag=" >> "$GITHUB_OUTPUT"
+            echo "Running in REAL publish mode"
+          fi
+
+      - name: Publish squick-core
+        run: cargo publish -p squick-core ${{ steps.mode.outputs.flag }}
+
+      - name: Wait for index
+        if: ${{ steps.mode.outputs.flag == '' }}
+        run: sleep 30
+
+      - name: Publish squick-dict
+        run: cargo publish -p squick-dict ${{ steps.mode.outputs.flag }}
+
+      - name: Wait for index
+        if: ${{ steps.mode.outputs.flag == '' }}
+        run: sleep 30
+
+      - name: Publish squick-format
+        run: cargo publish -p squick-format ${{ steps.mode.outputs.flag }}
+
+      - name: Wait for index
+        if: ${{ steps.mode.outputs.flag == '' }}
+        run: sleep 30
+
+      - name: Publish squick-watch
+        run: cargo publish -p squick-watch ${{ steps.mode.outputs.flag }}
+
+      - name: Wait for index
+        if: ${{ steps.mode.outputs.flag == '' }}
+        run: sleep 30
+
+      - name: Publish squick-cli
+        run: cargo publish -p squick-cli ${{ steps.mode.outputs.flag }}
