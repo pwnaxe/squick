@@ -1,0 +1,19 @@
+[package]
+name = "squick-watch"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+rust-version.workspace = true
+description = "Debounced filesystem watcher for Squick: triggers incremental rescans on file save."
+readme = "../../readme.md"
+keywords = ["mcp", "watcher", "filesystem", "debounce"]
+categories = ["development-tools", "filesystem"]
+
+[dependencies]
+squick-core.workspace = true
+anyhow.workspace = true
+notify.workspace = true
+notify-debouncer-mini.workspace = true

@@ -1,0 +1,10 @@
+name: frameworks/django
+description: Django markers — imports and conventional layout.
+entries:
+  - { pattern: "django",        kind: glob, match: import, tag: framework-django, confidence: high }
+  - { pattern: "django.*",      kind: glob, match: import, tag: framework-django, confidence: high }
+  - { pattern: "rest_framework", kind: glob, match: import, tag: framework-drf,    confidence: high }
+  - { pattern: "rest_framework.*", kind: glob, match: import, tag: framework-drf,  confidence: high }
+  - { pattern: "migrations",    match: path-segment, tag: db-migrations, confidence: high }
+  - { pattern: "templates",     match: path-segment, tag: html-templates, confidence: high }
+  - { pattern: "static",        match: path-segment, tag: static-assets, confidence: medium }

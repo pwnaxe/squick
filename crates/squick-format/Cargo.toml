@@ -1,0 +1,18 @@
+[package]
+name = "squick-format"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+rust-version.workspace = true
+description = "LLM-targeted output formatters for Squick: compact markdown and JSON tailored for AI agents."
+readme = "../../readme.md"
+keywords = ["mcp", "ai", "llm", "context", "markdown"]
+categories = ["development-tools"]
+
+[dependencies]
+squick-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true

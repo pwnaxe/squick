@@ -1,0 +1,19 @@
+name: files/python
+description: Python file roles signalled by canonical filenames.
+entries:
+  - { pattern: "main.py",      match: filename, tag: entrypoint,    confidence: high, note: "Conventional script entry point." }
+  - { pattern: "__main__.py",  match: filename, tag: entrypoint,    confidence: high }
+  - { pattern: "__init__.py",  match: filename, tag: package-init,  confidence: high }
+  - { pattern: "setup.py",     match: filename, tag: build-config,  confidence: high }
+  - { pattern: "pyproject.toml", match: filename, tag: build-config, confidence: high }
+  - { pattern: "conftest.py",  match: filename, tag: test-config,   confidence: high }
+  - { pattern: "manage.py",    match: filename, tag: django-cli,    confidence: high }
+  - { pattern: "asgi.py",      match: filename, tag: asgi-entrypoint, confidence: high }
+  - { pattern: "wsgi.py",      match: filename, tag: wsgi-entrypoint, confidence: high }
+  - { pattern: "models.py",    match: filename, tag: data-models,   confidence: high }
+  - { pattern: "views.py",     match: filename, tag: views-handlers, confidence: high }
+  - { pattern: "urls.py",      match: filename, tag: url-routing,   confidence: high }
+  - { pattern: "admin.py",     match: filename, tag: admin-config,  confidence: high }
+  - { pattern: "serializers.py", match: filename, tag: data-serializers, confidence: high }
+  - { pattern: "schemas.py",   match: filename, tag: data-schemas,  confidence: high }
+  - { pattern: "tasks.py",     match: filename, tag: background-tasks, confidence: medium }

@@ -1,0 +1,21 @@
+name: files/node
+description: Node.js / TypeScript file roles signalled by canonical filenames.
+entries:
+  - { pattern: "index.js",     match: filename, tag: entrypoint,    confidence: high }
+  - { pattern: "index.ts",     match: filename, tag: entrypoint,    confidence: high }
+  - { pattern: "index.tsx",    match: filename, tag: entrypoint,    confidence: medium }
+  - { pattern: "main.js",      match: filename, tag: entrypoint,    confidence: high }
+  - { pattern: "main.ts",      match: filename, tag: entrypoint,    confidence: high }
+  - { pattern: "server.js",    match: filename, tag: server-entrypoint, confidence: high }
+  - { pattern: "server.ts",    match: filename, tag: server-entrypoint, confidence: high }
+  - { pattern: "app.js",       match: filename, tag: app-entrypoint, confidence: high }
+  - { pattern: "app.ts",       match: filename, tag: app-entrypoint, confidence: high }
+  - { pattern: "package.json", match: filename, tag: package-manifest, confidence: high }
+  - { pattern: "tsconfig.json", match: filename, tag: build-config,  confidence: high }
+  - { pattern: "*.config.js",  kind: glob, match: filename, tag: build-config, confidence: high }
+  - { pattern: "*.config.ts",  kind: glob, match: filename, tag: build-config, confidence: high }
+  - { pattern: "*.test.ts",    kind: glob, match: filename, tag: unit-test, confidence: high }
+  - { pattern: "*.test.js",    kind: glob, match: filename, tag: unit-test, confidence: high }
+  - { pattern: "*.spec.ts",    kind: glob, match: filename, tag: unit-test, confidence: high }
+  - { pattern: "*.spec.js",    kind: glob, match: filename, tag: unit-test, confidence: high }
+  - { pattern: "*.d.ts",       kind: glob, match: filename, tag: type-declaration, confidence: high }

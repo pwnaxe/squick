@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "squick"
+version = "1.0.0"
+description = "Pre-computed LLM context for AI coding agents."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Horizon LLC" }]
+keywords = ["mcp", "ai", "llm", "context", "scanner", "ast", "tree-sitter"]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: Apache Software License",
+  "Operating System :: POSIX :: Linux",
+  "Operating System :: MacOS :: MacOS X",
+  "Operating System :: Microsoft :: Windows",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Rust",
+  "Topic :: Software Development :: Code Generators",
+  "Topic :: Software Development :: Pre-processors",
+]
+
+[project.scripts]
+squick = "squick:main"
+
+[project.urls]
+Homepage = "https://github.com/pwnaxe/squick"
+Repository = "https://github.com/pwnaxe/squick"
+Issues = "https://github.com/pwnaxe/squick/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+squick = ["_binary/*", "_binary/dictionaries/**/*"]

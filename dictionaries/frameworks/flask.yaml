@@ -1,0 +1,13 @@
+name: frameworks/flask
+description: Flask conventions and blueprint layout.
+entries:
+  - { pattern: "flask",           match: import, tag: framework-flask, confidence: high }
+  - { pattern: "flask.*",         kind: glob, match: import, tag: framework-flask, confidence: high }
+  - { pattern: "flask_*",         kind: glob, match: import, tag: framework-flask-extension, confidence: high }
+
+  - { pattern: "blueprints",      match: path-segment, tag: flask-blueprints, confidence: high }
+
+  - { pattern: "app.py",          match: filename, tag: flask-app, confidence: medium }
+  - { pattern: "wsgi.py",         match: filename, tag: wsgi-entrypoint, confidence: high }
+  - { pattern: "routes.py",       match: filename, tag: flask-routes, confidence: medium }
+  - { pattern: "extensions.py",   match: filename, tag: flask-extensions, confidence: medium }

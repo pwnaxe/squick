@@ -1,0 +1,20 @@
+name: naming/verbs
+description: Common function-name verbs that signal intent.
+entries:
+  - { pattern: "^get[A-Z].*",      kind: regex, match: symbol-name, tag: getter,    confidence: high }
+  - { pattern: "^set[A-Z].*",      kind: regex, match: symbol-name, tag: setter,    confidence: high }
+  - { pattern: "^fetch[A-Z].*",    kind: regex, match: symbol-name, tag: fetcher,   confidence: high }
+  - { pattern: "^load[A-Z].*",     kind: regex, match: symbol-name, tag: loader,    confidence: high }
+  - { pattern: "^save[A-Z].*",     kind: regex, match: symbol-name, tag: saver,     confidence: high }
+  - { pattern: "^delete[A-Z].*",   kind: regex, match: symbol-name, tag: deleter,   confidence: high }
+  - { pattern: "^create[A-Z].*",   kind: regex, match: symbol-name, tag: creator,   confidence: high }
+  - { pattern: "^update[A-Z].*",   kind: regex, match: symbol-name, tag: updater,   confidence: high }
+  - { pattern: "^validate[A-Z].*", kind: regex, match: symbol-name, tag: validator, confidence: high }
+  - { pattern: "^parse[A-Z].*",    kind: regex, match: symbol-name, tag: parser,    confidence: high }
+  - { pattern: "^format[A-Z].*",   kind: regex, match: symbol-name, tag: formatter, confidence: high }
+  - { pattern: "^render[A-Z].*",   kind: regex, match: symbol-name, tag: renderer,  confidence: high }
+  - { pattern: "^handle[A-Z].*",   kind: regex, match: symbol-name, tag: handler,   confidence: high }
+  - { pattern: "^on[A-Z].*",       kind: regex, match: symbol-name, tag: event-handler, confidence: medium }
+  - { pattern: "^is[A-Z].*",       kind: regex, match: symbol-name, tag: predicate, confidence: high }
+  - { pattern: "^has[A-Z].*",      kind: regex, match: symbol-name, tag: predicate, confidence: high }
+  - { pattern: "^can[A-Z].*",      kind: regex, match: symbol-name, tag: predicate, confidence: high }

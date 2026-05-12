@@ -1,0 +1,66 @@
+{
+  "name": "squick-vscode",
+  "displayName": "Squick",
+  "description": "Pre-computed LLM context for AI coding agents",
+  "version": "1.0.0",
+  "publisher": "horizon-llc",
+  "license": "Apache-2.0",
+  "author": "Horizon LLC",
+  "homepage": "https://github.com/pwnaxe/squick",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pwnaxe/squick.git"
+  },
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": ["Other"],
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "squick.scan",
+        "title": "Squick: Scan workspace"
+      },
+      {
+        "command": "squick.toggleWatch",
+        "title": "Squick: Toggle watch mode"
+      }
+    ],
+    "chatParticipants": [
+      {
+        "id": "squick.context",
+        "name": "squick",
+        "description": "Provides pre-computed project context",
+        "isSticky": true
+      }
+    ],
+    "configuration": {
+      "title": "Squick",
+      "properties": {
+        "squick.outputFormat": {
+          "type": "string",
+          "enum": ["markdown", "json"],
+          "default": "markdown"
+        },
+        "squick.dictionaryPath": {
+          "type": "string",
+          "description": "Optional path to a custom dictionary directory.",
+          "default": ""
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.90.0",
+    "typescript": "^5.4.0"
+  }
+}

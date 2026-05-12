@@ -1,0 +1,10 @@
+{
+  "name": "multi-framework-demo",
+  "version": "0.1.0",
+  "dependencies": {
+    "express": "^4.18.0"
+  },
+  "scripts": {
+    "start": "node express_app.js"
+  }
+}

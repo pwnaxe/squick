@@ -1,0 +1,12 @@
+name: components/html-semantic
+description: HTML5 semantic tags whose presence implies a UI region.
+entries:
+  - { pattern: "nav",     match: component, tag: navigation, confidence: high }
+  - { pattern: "header",  match: component, tag: page-header, confidence: high }
+  - { pattern: "footer",  match: component, tag: page-footer, confidence: high }
+  - { pattern: "main",    match: component, tag: main-content, confidence: high }
+  - { pattern: "aside",   match: component, tag: sidebar, confidence: high }
+  - { pattern: "article", match: component, tag: article-region, confidence: high }
+  - { pattern: "section", match: component, tag: section-region, confidence: medium }
+  - { pattern: "form",    match: component, tag: form-region, confidence: high }
+  - { pattern: "dialog",  match: component, tag: dialog-region, confidence: high }

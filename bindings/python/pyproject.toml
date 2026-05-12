@@ -1,0 +1,25 @@
+[build-system]
+requires = ["maturin>=1.7,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "squick"
+version = "1.0.0"
+description = "Pre-computed LLM context for AI agents"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Horizon LLC" }]
+requires-python = ">=3.9"
+classifiers = [
+  "Programming Language :: Rust",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "License :: OSI Approved :: Apache Software License",
+]
+
+[project.urls]
+Homepage = "https://github.com/pwnaxe/squick"
+Repository = "https://github.com/pwnaxe/squick"
+
+[tool.maturin]
+features = ["pyo3/extension-module"]
+module-name = "squick"
+manifest-path = "Cargo.toml"

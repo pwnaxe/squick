@@ -1,0 +1,22 @@
+{
+  "name": "@squick/linux-arm64",
+  "version": "1.0.0",
+  "description": "Squick binary for Linux aarch64.",
+  "license": "Apache-2.0",
+  "author": "Horizon LLC",
+  "homepage": "https://github.com/pwnaxe/squick",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pwnaxe/squick.git"
+  },
+  "os": ["linux"],
+  "cpu": ["arm64"],
+  "files": [
+    "bin/",
+    "dictionaries/",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}

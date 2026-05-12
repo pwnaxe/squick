@@ -1,0 +1,29 @@
+name: frameworks/strapi
+description: Strapi headless CMS conventions.
+entries:
+  - { pattern: "@strapi/strapi",     match: import, tag: framework-strapi, confidence: high }
+  - { pattern: "@strapi/*",          kind: glob, match: import, tag: framework-strapi, confidence: high }
+  - { pattern: "strapi",             match: import, tag: framework-strapi, confidence: high }
+
+  - { pattern: "controllers",        match: path-segment, tag: strapi-controllers, confidence: high }
+  - { pattern: "routes",             match: path-segment, tag: strapi-routes, confidence: high }
+  - { pattern: "services",           match: path-segment, tag: strapi-services, confidence: high }
+  - { pattern: "content-types",      match: path-segment, tag: strapi-content-types, confidence: high }
+  - { pattern: "policies",           match: path-segment, tag: strapi-policies, confidence: high }
+  - { pattern: "middlewares",        match: path-segment, tag: strapi-middlewares, confidence: high }
+
+  - { pattern: "lifecycles.js",      match: filename, tag: strapi-lifecycle-hooks, confidence: high, note: "Strapi entity lifecycle callbacks." }
+  - { pattern: "lifecycles.ts",      match: filename, tag: strapi-lifecycle-hooks, confidence: high }
+  - { pattern: "schema.json",        match: filename, tag: strapi-content-schema, confidence: high, note: "Strapi content-type schema." }
+  - { pattern: "bootstrap.js",       match: filename, tag: strapi-bootstrap, confidence: medium }
+  - { pattern: "register.js",        match: filename, tag: strapi-register-hook, confidence: medium }
+  - { pattern: "destroy.js",         match: filename, tag: strapi-destroy-hook, confidence: medium }
+
+  - { pattern: "^beforeCreate$",     kind: regex, match: symbol-name, tag: lifecycle-hook, confidence: high }
+  - { pattern: "^beforeUpdate$",     kind: regex, match: symbol-name, tag: lifecycle-hook, confidence: high }
+  - { pattern: "^beforeDelete$",     kind: regex, match: symbol-name, tag: lifecycle-hook, confidence: high }
+  - { pattern: "^afterCreate$",      kind: regex, match: symbol-name, tag: lifecycle-hook, confidence: high }
+  - { pattern: "^afterUpdate$",      kind: regex, match: symbol-name, tag: lifecycle-hook, confidence: high }
+  - { pattern: "^afterDelete$",      kind: regex, match: symbol-name, tag: lifecycle-hook, confidence: high }
+  - { pattern: "^beforeFind.*$",     kind: regex, match: symbol-name, tag: lifecycle-hook, confidence: high }
+  - { pattern: "^afterFind.*$",      kind: regex, match: symbol-name, tag: lifecycle-hook, confidence: high }

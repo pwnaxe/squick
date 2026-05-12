@@ -1,0 +1,20 @@
+name: frameworks/wordpress
+description: WordPress theme and plugin file roles.
+entries:
+  - { pattern: "wp-config.php",       match: filename, tag: wordpress-config, confidence: high }
+  - { pattern: "functions.php",       match: filename, tag: wordpress-theme-bootstrap, confidence: high }
+  - { pattern: "style.css",           match: filename, tag: wordpress-theme-manifest, confidence: medium, note: "Header comment declares theme metadata." }
+  - { pattern: "index.php",           match: filename, tag: wordpress-template, confidence: medium }
+  - { pattern: "header.php",          match: filename, tag: wordpress-template, confidence: high }
+  - { pattern: "footer.php",          match: filename, tag: wordpress-template, confidence: high }
+  - { pattern: "sidebar.php",         match: filename, tag: wordpress-template, confidence: high }
+  - { pattern: "single.php",          match: filename, tag: wordpress-template, confidence: high }
+  - { pattern: "archive.php",         match: filename, tag: wordpress-template, confidence: high }
+  - { pattern: "page.php",            match: filename, tag: wordpress-template, confidence: high }
+  - { pattern: "comments.php",        match: filename, tag: wordpress-template, confidence: high }
+  - { pattern: "search.php",          match: filename, tag: wordpress-template, confidence: high }
+  - { pattern: "404.php",             match: filename, tag: wordpress-template, confidence: high }
+
+  - { pattern: "wp-content",          match: path-segment, tag: wordpress-content-root, confidence: high }
+  - { pattern: "plugins",             match: path-segment, tag: wordpress-plugins, confidence: medium }
+  - { pattern: "themes",              match: path-segment, tag: wordpress-themes, confidence: medium }

@@ -1,0 +1,42 @@
+name: frameworks/nextjs
+description: Next.js App Router and Pages Router conventions.
+entries:
+  - { pattern: "next",            match: import, tag: framework-nextjs, confidence: high }
+  - { pattern: "next/*",          kind: glob, match: import, tag: framework-nextjs, confidence: high }
+  - { pattern: "next-intl",       match: import, tag: nextjs-i18n, confidence: high }
+  - { pattern: "next-intl/*",     kind: glob, match: import, tag: nextjs-i18n, confidence: high }
+
+  - { pattern: "app",             match: path-segment, tag: nextjs-app-router, confidence: high }
+  - { pattern: "pages",           match: path-segment, tag: nextjs-pages-router, confidence: medium }
+
+  - { pattern: "page.tsx",        match: filename, tag: nextjs-route-page,    confidence: high, note: "App Router page component." }
+  - { pattern: "page.jsx",        match: filename, tag: nextjs-route-page,    confidence: high }
+  - { pattern: "page.ts",         match: filename, tag: nextjs-route-page,    confidence: high }
+  - { pattern: "page.js",         match: filename, tag: nextjs-route-page,    confidence: high }
+  - { pattern: "layout.tsx",      match: filename, tag: nextjs-layout,        confidence: high }
+  - { pattern: "layout.jsx",      match: filename, tag: nextjs-layout,        confidence: high }
+  - { pattern: "layout.ts",       match: filename, tag: nextjs-layout,        confidence: high }
+  - { pattern: "layout.js",       match: filename, tag: nextjs-layout,        confidence: high }
+  - { pattern: "loading.tsx",     match: filename, tag: nextjs-loading-ui,    confidence: high }
+  - { pattern: "loading.jsx",     match: filename, tag: nextjs-loading-ui,    confidence: high }
+  - { pattern: "error.tsx",       match: filename, tag: nextjs-error-boundary, confidence: high }
+  - { pattern: "error.jsx",       match: filename, tag: nextjs-error-boundary, confidence: high }
+  - { pattern: "not-found.tsx",   match: filename, tag: nextjs-not-found,     confidence: high }
+  - { pattern: "not-found.jsx",   match: filename, tag: nextjs-not-found,     confidence: high }
+  - { pattern: "route.ts",        match: filename, tag: nextjs-route-handler, confidence: high, note: "App Router API route handler." }
+  - { pattern: "route.js",        match: filename, tag: nextjs-route-handler, confidence: high }
+  - { pattern: "middleware.ts",   match: filename, tag: nextjs-middleware,    confidence: high }
+  - { pattern: "middleware.js",   match: filename, tag: nextjs-middleware,    confidence: high }
+  - { pattern: "next.config.ts",  match: filename, tag: nextjs-config,        confidence: high }
+  - { pattern: "next.config.js",  match: filename, tag: nextjs-config,        confidence: high }
+  - { pattern: "next.config.mjs", match: filename, tag: nextjs-config,        confidence: high }
+
+  - { pattern: "^GET$",           kind: regex, match: symbol-name, tag: http-handler-get,    confidence: high }
+  - { pattern: "^POST$",          kind: regex, match: symbol-name, tag: http-handler-post,   confidence: high }
+  - { pattern: "^PUT$",           kind: regex, match: symbol-name, tag: http-handler-put,    confidence: high }
+  - { pattern: "^DELETE$",        kind: regex, match: symbol-name, tag: http-handler-delete, confidence: high }
+  - { pattern: "^PATCH$",         kind: regex, match: symbol-name, tag: http-handler-patch,  confidence: high }
+  - { pattern: "^HEAD$",          kind: regex, match: symbol-name, tag: http-handler-head,   confidence: high }
+  - { pattern: "^OPTIONS$",       kind: regex, match: symbol-name, tag: http-handler-options, confidence: high }
+  - { pattern: "^generateMetadata$", kind: regex, match: symbol-name, tag: nextjs-metadata, confidence: high }
+  - { pattern: "^generateStaticParams$", kind: regex, match: symbol-name, tag: nextjs-static-params, confidence: high }

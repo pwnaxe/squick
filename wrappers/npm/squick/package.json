@@ -1,0 +1,38 @@
+{
+  "name": "squick",
+  "version": "1.0.0",
+  "description": "Pre-computed LLM context for AI coding agents.",
+  "license": "Apache-2.0",
+  "author": "Horizon LLC",
+  "homepage": "https://github.com/pwnaxe/squick",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pwnaxe/squick.git"
+  },
+  "keywords": [
+    "mcp",
+    "ai",
+    "llm",
+    "context",
+    "scanner",
+    "ast",
+    "tree-sitter"
+  ],
+  "bin": {
+    "squick": "bin/squick.js"
+  },
+  "files": [
+    "bin/",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "optionalDependencies": {
+    "@squick/linux-x64": "1.0.0",
+    "@squick/linux-arm64": "1.0.0",
+    "@squick/darwin-x64": "1.0.0",
+    "@squick/darwin-arm64": "1.0.0",
+    "@squick/win32-x64": "1.0.0"
+  }
+}

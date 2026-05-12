@@ -1,0 +1,22 @@
+name: frameworks/express
+description: Express.js and Koa conventions.
+entries:
+  - { pattern: "express",         match: import, tag: framework-express, confidence: high }
+  - { pattern: "@express/*",      kind: glob, match: import, tag: framework-express, confidence: high }
+  - { pattern: "koa",             match: import, tag: framework-koa, confidence: high }
+  - { pattern: "@koa/*",          kind: glob, match: import, tag: framework-koa, confidence: high }
+  - { pattern: "fastify",         match: import, tag: framework-fastify, confidence: high }
+  - { pattern: "@fastify/*",      kind: glob, match: import, tag: framework-fastify, confidence: high }
+  - { pattern: "hapi",            match: import, tag: framework-hapi, confidence: high }
+  - { pattern: "@hapi/*",         kind: glob, match: import, tag: framework-hapi, confidence: high }
+  - { pattern: "@nestjs/*",       kind: glob, match: import, tag: framework-nestjs, confidence: high }
+
+  - { pattern: "routes",          match: path-segment, tag: api-routes, confidence: medium }
+  - { pattern: "middleware",      match: path-segment, tag: middleware-layer, confidence: high }
+  - { pattern: "middlewares",     match: path-segment, tag: middleware-layer, confidence: high }
+  - { pattern: "controllers",     match: path-segment, tag: controllers, confidence: high }
+
+  - { pattern: "server.js",       match: filename, tag: server-entrypoint, confidence: high }
+  - { pattern: "server.ts",       match: filename, tag: server-entrypoint, confidence: high }
+  - { pattern: "app.module.ts",   match: filename, tag: nestjs-root-module, confidence: high }
+  - { pattern: "main.ts",         match: filename, tag: nestjs-bootstrap, confidence: medium, note: "NestJS bootstrap file." }

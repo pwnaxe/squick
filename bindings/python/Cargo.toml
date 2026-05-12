@@ -1,0 +1,19 @@
+[package]
+name = "squick-python"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Python (PyO3) bindings for Squick"
+publish = false
+
+[lib]
+name = "squick"
+crate-type = ["cdylib"]
+
+[dependencies]
+squick-core.workspace = true
+squick-format.workspace = true
+pyo3 = { version = "0.22", features = ["extension-module", "abi3-py39"] }

@@ -1,0 +1,15 @@
+name: frameworks/fastapi
+description: FastAPI conventions and entry points.
+entries:
+  - { pattern: "fastapi",        match: import, tag: framework-fastapi, confidence: high }
+  - { pattern: "fastapi.*",      kind: glob, match: import, tag: framework-fastapi, confidence: high }
+  - { pattern: "starlette",      match: import, tag: framework-starlette, confidence: high }
+  - { pattern: "starlette.*",    kind: glob, match: import, tag: framework-starlette, confidence: high }
+
+  - { pattern: "routers",        match: path-segment, tag: fastapi-routers, confidence: high }
+  - { pattern: "dependencies",   match: path-segment, tag: fastapi-dependencies, confidence: medium }
+
+  - { pattern: "main.py",        match: filename, tag: fastapi-entrypoint, confidence: medium, note: "Conventional FastAPI app entrypoint." }
+  - { pattern: "app.py",         match: filename, tag: fastapi-entrypoint, confidence: medium }
+  - { pattern: "deps.py",        match: filename, tag: fastapi-dependencies, confidence: medium }
+  - { pattern: "schemas.py",     match: filename, tag: fastapi-pydantic-schemas, confidence: medium }

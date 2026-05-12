@@ -1,0 +1,30 @@
+[package]
+name = "squick-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+rust-version.workspace = true
+description = "Squick command-line interface and MCP server: pre-computed LLM context for AI coding agents."
+readme = "../../readme.md"
+keywords = ["mcp", "ai", "llm", "context", "cli"]
+categories = ["development-tools", "command-line-utilities"]
+
+[[bin]]
+name = "squick"
+path = "src/main.rs"
+
+[dependencies]
+squick-core.workspace = true
+squick-dict.workspace = true
+squick-format.workspace = true
+squick-watch.workspace = true
+anyhow.workspace = true
+clap.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+rmcp.workspace = true
+schemars.workspace = true

@@ -1,0 +1,16 @@
+name: frameworks/sanity
+description: Sanity headless CMS conventions.
+entries:
+  - { pattern: "@sanity/client",       match: import, tag: framework-sanity, confidence: high }
+  - { pattern: "@sanity/*",            kind: glob, match: import, tag: framework-sanity, confidence: high }
+  - { pattern: "sanity",               match: import, tag: framework-sanity, confidence: high }
+  - { pattern: "next-sanity",          match: import, tag: framework-sanity, confidence: high }
+
+  - { pattern: "sanity.config.ts",     match: filename, tag: sanity-config, confidence: high }
+  - { pattern: "sanity.config.js",     match: filename, tag: sanity-config, confidence: high }
+  - { pattern: "sanity.cli.ts",        match: filename, tag: sanity-cli-config, confidence: high }
+  - { pattern: "sanity.cli.js",        match: filename, tag: sanity-cli-config, confidence: high }
+
+  - { pattern: "schemas",              match: path-segment, tag: sanity-schemas, confidence: medium }
+  - { pattern: "schemaTypes",          match: path-segment, tag: sanity-schemas, confidence: high }
+  - { pattern: "studio",               match: path-segment, tag: sanity-studio, confidence: medium }

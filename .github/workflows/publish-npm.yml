@@ -1,0 +1,103 @@
+# Publishes the npm wrapper packages after `dist` finishes a GitHub
+# release. Downloads the platform archives produced by the release
+# workflow, splices them into the `wrappers/npm/platforms/*` shells,
+# and publishes both the platform packages and the umbrella `squick`
+# package.
+name: publish-npm
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to publish (e.g. v1.0.0)"
+        required: true
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: https://registry.npmjs.org
+
+      - name: Resolve release tag and version
+        id: tag
+        run: |
+          if [ -n "${{ github.event.inputs.tag }}" ]; then
+            TAG="${{ github.event.inputs.tag }}"
+          else
+            TAG="${{ github.event.release.tag_name }}"
+          fi
+          VERSION="${TAG#v}"
+          echo "tag=$TAG"     >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Download release archives
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p _release
+          gh release download "${{ steps.tag.outputs.tag }}" -D _release \
+            -p 'squick-cli-*.tar.xz' \
+            -p 'squick-cli-*.zip'
+          ls -la _release
+
+      - name: Stage platform packages
+        env:
+          VERSION: ${{ steps.tag.outputs.version }}
+        run: |
+          set -euo pipefail
+          declare -A MAP=(
+            ["x86_64-unknown-linux-gnu"]="linux-x64"
+            ["aarch64-unknown-linux-gnu"]="linux-arm64"
+            ["x86_64-apple-darwin"]="darwin-x64"
+            ["aarch64-apple-darwin"]="darwin-arm64"
+            ["x86_64-pc-windows-msvc"]="win32-x64"
+          )
+          for triple in "${!MAP[@]}"; do
+            platform="${MAP[$triple]}"
+            target_dir="wrappers/npm/platforms/${platform}"
+            stage="$(mktemp -d)"
+            if [[ "$triple" == *"windows"* ]]; then
+              unzip -q "_release/squick-cli-${triple}.zip" -d "$stage"
+            else
+              tar -xf "_release/squick-cli-${triple}.tar.xz" -C "$stage"
+            fi
+            inner="$(find "$stage" -mindepth 1 -maxdepth 1 -type d | head -n1)"
+            inner="${inner:-$stage}"
+            mkdir -p "${target_dir}/bin"
+            if [[ "$triple" == *"windows"* ]]; then
+              cp "${inner}/squick.exe" "${target_dir}/bin/squick.exe"
+            else
+              cp "${inner}/squick" "${target_dir}/bin/squick"
+              chmod +x "${target_dir}/bin/squick"
+            fi
+            cp -R "${inner}/dictionaries" "${target_dir}/dictionaries"
+            cp "${inner}/LICENSE" "${target_dir}/LICENSE" 2>/dev/null || cp LICENSE "${target_dir}/LICENSE"
+            node -e "const f='${target_dir}/package.json';const p=require('path').resolve(f);const j=require(p);j.version=process.env.VERSION;require('fs').writeFileSync(p, JSON.stringify(j,null,2)+'\n');"
+          done
+          node -e "const f='wrappers/npm/squick/package.json';const p=require('path').resolve(f);const j=require(p);j.version=process.env.VERSION;for(const k of Object.keys(j.optionalDependencies||{})){j.optionalDependencies[k]=process.env.VERSION;}require('fs').writeFileSync(p, JSON.stringify(j,null,2)+'\n');"
+          cp LICENSE wrappers/npm/squick/LICENSE
+
+      - name: Publish platform packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          for dir in wrappers/npm/platforms/*/; do
+            echo "Publishing ${dir}"
+            npm publish "${dir}" --access public --provenance
+          done
+
+      - name: Publish umbrella package
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish wrappers/npm/squick --access public --provenance

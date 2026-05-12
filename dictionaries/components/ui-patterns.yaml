@@ -1,0 +1,25 @@
+name: components/ui-patterns
+description: Conventional UI component names. Match against component or filename.
+entries:
+  - { pattern: "navbar",        kind: glob, match: component, tag: navigation,    confidence: high }
+  - { pattern: "*navbar*",      kind: glob, match: component, tag: navigation,    confidence: high }
+  - { pattern: "*sidebar*",     kind: glob, match: component, tag: sidebar,       confidence: high }
+  - { pattern: "*header*",      kind: glob, match: component, tag: page-header,   confidence: medium }
+  - { pattern: "*footer*",      kind: glob, match: component, tag: page-footer,   confidence: medium }
+  - { pattern: "*hero*",        kind: glob, match: component, tag: hero-section,  confidence: high }
+  - { pattern: "*modal*",       kind: glob, match: component, tag: modal,         confidence: high }
+  - { pattern: "*dialog*",      kind: glob, match: component, tag: dialog,        confidence: high }
+  - { pattern: "*dropdown*",    kind: glob, match: component, tag: dropdown,      confidence: high }
+  - { pattern: "*accordion*",   kind: glob, match: component, tag: accordion,     confidence: high }
+  - { pattern: "*breadcrumb*",  kind: glob, match: component, tag: breadcrumb,    confidence: high }
+  - { pattern: "*pagination*",  kind: glob, match: component, tag: pagination,    confidence: high }
+  - { pattern: "*tabs*",        kind: glob, match: component, tag: tabs,          confidence: medium }
+  - { pattern: "*toast*",       kind: glob, match: component, tag: toast,         confidence: high }
+  - { pattern: "*tooltip*",     kind: glob, match: component, tag: tooltip,       confidence: high }
+  - { pattern: "*card*",        kind: glob, match: component, tag: card,          confidence: medium }
+  - { pattern: "*button*",      kind: glob, match: component, tag: button,        confidence: medium }
+  - { pattern: "*spinner*",     kind: glob, match: component, tag: spinner,       confidence: high }
+  - { pattern: "*loader*",      kind: glob, match: component, tag: spinner,       confidence: medium }
+  - { pattern: "*contactform*", kind: glob, match: component, tag: contact-form,  confidence: high }
+  - { pattern: "*loginform*",   kind: glob, match: component, tag: login-form,    confidence: high }
+  - { pattern: "*signupform*",  kind: glob, match: component, tag: signup-form,   confidence: high }

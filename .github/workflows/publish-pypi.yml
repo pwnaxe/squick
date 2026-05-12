@@ -1,0 +1,117 @@
+# Publishes the PyPI wrapper to PyPI after `dist` finishes a GitHub
+# release. Builds one platform wheel per target by re-tagging a
+# pure-python wheel through `wheel tags`. Each wheel bundles the
+# matching squick binary plus the dictionaries directory.
+name: publish-pypi
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to publish (e.g. v1.0.0)"
+        required: true
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  build:
+    name: build wheel (${{ matrix.platform.plat_tag }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - { triple: x86_64-unknown-linux-gnu,  plat_tag: manylinux2014_x86_64, archive_ext: tar.xz }
+          - { triple: aarch64-unknown-linux-gnu, plat_tag: manylinux2014_aarch64, archive_ext: tar.xz }
+          - { triple: x86_64-apple-darwin,       plat_tag: macosx_10_12_x86_64,  archive_ext: tar.xz }
+          - { triple: aarch64-apple-darwin,      plat_tag: macosx_11_0_arm64,    archive_ext: tar.xz }
+          - { triple: x86_64-pc-windows-msvc,    plat_tag: win_amd64,            archive_ext: zip }
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build tooling
+        run: pip install build wheel
+
+      - name: Resolve tag
+        id: tag
+        run: |
+          if [ -n "${{ github.event.inputs.tag }}" ]; then
+            TAG="${{ github.event.inputs.tag }}"
+          else
+            TAG="${{ github.event.release.tag_name }}"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Download release archive
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p _release
+          gh release download "${{ steps.tag.outputs.tag }}" -D _release \
+            -p 'squick-cli-${{ matrix.platform.triple }}.${{ matrix.platform.archive_ext }}'
+
+      - name: Stage binary into wheel source
+        run: |
+          set -euo pipefail
+          stage="$(mktemp -d)"
+          archive="_release/squick-cli-${{ matrix.platform.triple }}.${{ matrix.platform.archive_ext }}"
+          if [[ "${{ matrix.platform.archive_ext }}" == "zip" ]]; then
+            unzip -q "$archive" -d "$stage"
+          else
+            tar -xf "$archive" -C "$stage"
+          fi
+          inner="$(find "$stage" -mindepth 1 -maxdepth 1 -type d | head -n1)"
+          inner="${inner:-$stage}"
+          target="wrappers/pypi/src/squick/_binary"
+          mkdir -p "$target"
+          if [[ "${{ matrix.platform.triple }}" == *"windows"* ]]; then
+            cp "${inner}/squick.exe" "${target}/squick.exe"
+          else
+            cp "${inner}/squick" "${target}/squick"
+            chmod +x "${target}/squick"
+          fi
+          cp -R "${inner}/dictionaries" "${target}/dictionaries"
+
+      - name: Build pure-python wheel
+        working-directory: wrappers/pypi
+        run: python -m build --wheel
+
+      - name: Re-tag wheel for ${{ matrix.platform.plat_tag }}
+        working-directory: wrappers/pypi/dist
+        run: |
+          set -euo pipefail
+          wheel tags --platform-tag=${{ matrix.platform.plat_tag }} \
+                     --remove \
+                     squick-*-py3-none-any.whl
+          ls -la
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheel-${{ matrix.platform.plat_tag }}
+          path: wrappers/pypi/dist/*.whl
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: List wheels
+        run: ls -la dist/
+
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist
+          # Uses trusted publishing (OIDC) — configure on PyPI side
+          # via "Trusted Publisher Management" for the squick project.

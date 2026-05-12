@@ -1,0 +1,28 @@
+name: routes/web-common
+description: Common public-facing web routes whose meaning is conventional.
+entries:
+  - { pattern: "/",            match: route, tag: home-page,       confidence: high }
+  - { pattern: "/about",       match: route, tag: about-page,      confidence: high }
+  - { pattern: "/about-us",    match: route, tag: about-page,      confidence: high }
+  - { pattern: "/aboutus",     match: route, tag: about-page,      confidence: high }
+  - { pattern: "/contact",     match: route, tag: contact-page,    confidence: high }
+  - { pattern: "/contact-us",  match: route, tag: contact-page,    confidence: high }
+  - { pattern: "/pricing",     match: route, tag: pricing-page,    confidence: high }
+  - { pattern: "/privacy",     match: route, tag: privacy-page,    confidence: high }
+  - { pattern: "/terms",       match: route, tag: terms-page,      confidence: high }
+  - { pattern: "/login",       match: route, tag: auth-login,      confidence: high }
+  - { pattern: "/signin",      match: route, tag: auth-login,      confidence: high }
+  - { pattern: "/signup",      match: route, tag: auth-signup,     confidence: high }
+  - { pattern: "/register",    match: route, tag: auth-signup,     confidence: high }
+  - { pattern: "/logout",      match: route, tag: auth-logout,     confidence: high }
+  - { pattern: "/dashboard",   match: route, tag: dashboard-page,  confidence: high }
+  - { pattern: "/settings",    match: route, tag: settings-page,   confidence: high }
+  - { pattern: "/profile",     match: route, tag: profile-page,    confidence: high }
+  - { pattern: "/admin",       match: route, tag: admin-area,      confidence: high }
+  - { pattern: "/api",         match: route, tag: api-root,        confidence: high }
+  - { pattern: "/health",      match: route, tag: health-check,    confidence: high }
+  - { pattern: "/status",      match: route, tag: health-check,    confidence: medium }
+  - { pattern: "/cart",        match: route, tag: ecommerce-cart,  confidence: high }
+  - { pattern: "/checkout",    match: route, tag: ecommerce-checkout, confidence: high }
+  - { pattern: "/orders",      match: route, tag: ecommerce-orders, confidence: high }
+  - { pattern: "/products",    match: route, tag: ecommerce-products, confidence: high }

@@ -1,0 +1,51 @@
+name: naming/python
+description: Python snake_case naming conventions and dunder methods.
+entries:
+  - { pattern: "^get_.*",       kind: regex, match: symbol-name, tag: getter,        confidence: high }
+  - { pattern: "^set_.*",       kind: regex, match: symbol-name, tag: setter,        confidence: high }
+  - { pattern: "^fetch_.*",     kind: regex, match: symbol-name, tag: fetcher,       confidence: high }
+  - { pattern: "^load_.*",      kind: regex, match: symbol-name, tag: loader,        confidence: high }
+  - { pattern: "^save_.*",      kind: regex, match: symbol-name, tag: saver,         confidence: high }
+  - { pattern: "^delete_.*",    kind: regex, match: symbol-name, tag: deleter,       confidence: high }
+  - { pattern: "^remove_.*",    kind: regex, match: symbol-name, tag: deleter,       confidence: high }
+  - { pattern: "^create_.*",    kind: regex, match: symbol-name, tag: creator,       confidence: high }
+  - { pattern: "^update_.*",    kind: regex, match: symbol-name, tag: updater,       confidence: high }
+  - { pattern: "^validate_.*",  kind: regex, match: symbol-name, tag: validator,     confidence: high }
+  - { pattern: "^parse_.*",     kind: regex, match: symbol-name, tag: parser,        confidence: high }
+  - { pattern: "^format_.*",    kind: regex, match: symbol-name, tag: formatter,     confidence: high }
+  - { pattern: "^render_.*",    kind: regex, match: symbol-name, tag: renderer,      confidence: high }
+  - { pattern: "^handle_.*",    kind: regex, match: symbol-name, tag: handler,       confidence: high }
+  - { pattern: "^process_.*",   kind: regex, match: symbol-name, tag: processor,     confidence: high }
+  - { pattern: "^on_.*",        kind: regex, match: symbol-name, tag: event-handler, confidence: medium }
+  - { pattern: "^is_.*",        kind: regex, match: symbol-name, tag: predicate,     confidence: high }
+  - { pattern: "^has_.*",       kind: regex, match: symbol-name, tag: predicate,     confidence: high }
+  - { pattern: "^can_.*",       kind: regex, match: symbol-name, tag: predicate,     confidence: high }
+  - { pattern: "^should_.*",    kind: regex, match: symbol-name, tag: predicate,     confidence: high }
+
+  - { pattern: ".*_view$",       kind: regex, match: symbol-name, tag: view-handler, confidence: high, note: "Django/Flask view function." }
+  - { pattern: ".*_handler$",    kind: regex, match: symbol-name, tag: handler,      confidence: high }
+  - { pattern: ".*_service$",    kind: regex, match: symbol-name, tag: service,      confidence: high }
+  - { pattern: ".*_repository$", kind: regex, match: symbol-name, tag: repository,   confidence: high }
+  - { pattern: ".*_factory$",    kind: regex, match: symbol-name, tag: factory,      confidence: high }
+  - { pattern: ".*_validator$",  kind: regex, match: symbol-name, tag: validator,    confidence: high }
+  - { pattern: ".*_serializer$", kind: regex, match: symbol-name, tag: serializer,   confidence: high }
+  - { pattern: ".*_form$",       kind: regex, match: symbol-name, tag: form,         confidence: high }
+  - { pattern: ".*_filter$",     kind: regex, match: symbol-name, tag: filter,       confidence: high }
+  - { pattern: ".*_middleware$", kind: regex, match: symbol-name, tag: middleware,   confidence: high }
+  - { pattern: ".*_task$",       kind: regex, match: symbol-name, tag: task,         confidence: high, note: "Celery or background task." }
+  - { pattern: ".*_command$",    kind: regex, match: symbol-name, tag: command,      confidence: medium }
+
+  - { pattern: "__init__",   match: symbol-name, tag: constructor,     confidence: high }
+  - { pattern: "__new__",    match: symbol-name, tag: constructor,     confidence: high }
+  - { pattern: "__str__",    match: symbol-name, tag: repr-method,     confidence: high }
+  - { pattern: "__repr__",   match: symbol-name, tag: repr-method,     confidence: high }
+  - { pattern: "__eq__",     match: symbol-name, tag: equality-method, confidence: high }
+  - { pattern: "__hash__",   match: symbol-name, tag: hash-method,     confidence: high }
+  - { pattern: "__call__",   match: symbol-name, tag: callable-method, confidence: high }
+  - { pattern: "__enter__",  match: symbol-name, tag: context-manager, confidence: high }
+  - { pattern: "__exit__",   match: symbol-name, tag: context-manager, confidence: high }
+  - { pattern: "__iter__",   match: symbol-name, tag: iterable,        confidence: high }
+  - { pattern: "__next__",   match: symbol-name, tag: iterable,        confidence: high }
+  - { pattern: "__len__",    match: symbol-name, tag: sized,           confidence: high }
+  - { pattern: "__getitem__", match: symbol-name, tag: indexable,      confidence: high }
+  - { pattern: "__setitem__", match: symbol-name, tag: indexable,      confidence: high }

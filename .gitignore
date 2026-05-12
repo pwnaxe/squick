@@ -1,0 +1,36 @@
+/target
+**/target
+Cargo.lock.bak
+
+# Node
+node_modules/
+*.tsbuildinfo
+**/dist/
+**/out/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+
+# VSC
+.vscode-test/
+*.vsix
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Squick output
+.squick/
+
+# Distribution staging (binaries injected at release time)
+wrappers/npm/platforms/*/bin/
+wrappers/npm/platforms/*/dictionaries/
+wrappers/npm/platforms/*/LICENSE
+wrappers/npm/squick/LICENSE
+wrappers/pypi/src/squick/_binary/
+wrappers/pypi/dist/
+wrappers/pypi/build/
+wrappers/pypi/*.egg-info/

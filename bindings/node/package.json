@@ -1,0 +1,31 @@
+{
+  "name": "@squick/node",
+  "version": "1.0.0",
+  "description": "Node.js bindings for Squick",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "license": "Apache-2.0",
+  "author": "Horizon LLC",
+  "homepage": "https://github.com/pwnaxe/squick",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pwnaxe/squick.git"
+  },
+  "scripts": {
+    "build": "napi build --platform --release",
+    "build:debug": "napi build --platform"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "^2.18.0"
+  },
+  "napi": {
+    "name": "squick",
+    "triples": {
+      "defaults": true,
+      "additional": []
+    }
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

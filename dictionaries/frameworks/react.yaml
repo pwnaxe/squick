@@ -1,0 +1,11 @@
+name: frameworks/react
+description: React markers — hooks, HOCs, JSX-based identifiers.
+entries:
+  - { pattern: "react",        match: import,      tag: framework-react,  confidence: high }
+  - { pattern: "react-dom",    match: import,      tag: framework-react,  confidence: high }
+  - { pattern: "^use[A-Z][A-Za-z0-9]*$", kind: regex, match: symbol-name, tag: react-hook, confidence: high, note: "Custom hook naming convention." }
+  - { pattern: "^with[A-Z][A-Za-z0-9]*$", kind: regex, match: symbol-name, tag: react-hoc,  confidence: high, note: "Higher-order component convention." }
+  - { pattern: "components",   match: path-segment, tag: ui-components,   confidence: high }
+  - { pattern: "hooks",        match: path-segment, tag: react-hooks,     confidence: high }
+  - { pattern: "pages",        match: path-segment, tag: route-pages,     confidence: high }
+  - { pattern: "app",          match: path-segment, tag: nextjs-app-router, confidence: medium }

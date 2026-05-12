@@ -1,0 +1,22 @@
+[package]
+name = "squick-node"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Node.js (napi-rs) bindings for Squick"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+squick-core.workspace = true
+squick-format.workspace = true
+napi = { version = "2", default-features = false, features = ["napi4", "serde-json"] }
+napi-derive = "2"
+
+[build-dependencies]
+napi-build = "2"

@@ -1,0 +1,17 @@
+name: naming/suffixes
+description: Class/identifier suffixes that signal architectural role.
+entries:
+  - { pattern: ".*Handler$",    kind: regex, match: symbol-name, tag: handler,    confidence: high }
+  - { pattern: ".*Controller$", kind: regex, match: symbol-name, tag: controller, confidence: high }
+  - { pattern: ".*Service$",    kind: regex, match: symbol-name, tag: service,    confidence: high }
+  - { pattern: ".*Repository$", kind: regex, match: symbol-name, tag: repository, confidence: high }
+  - { pattern: ".*Factory$",    kind: regex, match: symbol-name, tag: factory,    confidence: high }
+  - { pattern: ".*Provider$",   kind: regex, match: symbol-name, tag: provider,   confidence: high }
+  - { pattern: ".*Manager$",    kind: regex, match: symbol-name, tag: manager,    confidence: high }
+  - { pattern: ".*Builder$",    kind: regex, match: symbol-name, tag: builder,    confidence: high }
+  - { pattern: ".*Adapter$",    kind: regex, match: symbol-name, tag: adapter,    confidence: high }
+  - { pattern: ".*Validator$",  kind: regex, match: symbol-name, tag: validator,  confidence: high }
+  - { pattern: ".*Serializer$", kind: regex, match: symbol-name, tag: serializer, confidence: high }
+  - { pattern: ".*Mapper$",     kind: regex, match: symbol-name, tag: mapper,     confidence: high }
+  - { pattern: ".*DTO$",        kind: regex, match: symbol-name, tag: dto,        confidence: high }
+  - { pattern: ".*Model$",      kind: regex, match: symbol-name, tag: model,      confidence: medium }

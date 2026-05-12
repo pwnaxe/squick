@@ -1,0 +1,14 @@
+name: frameworks/payload
+description: Payload CMS conventions.
+entries:
+  - { pattern: "payload",              match: import, tag: framework-payload, confidence: high }
+  - { pattern: "@payloadcms/*",        kind: glob, match: import, tag: framework-payload, confidence: high }
+
+  - { pattern: "payload.config.ts",    match: filename, tag: payload-config, confidence: high }
+  - { pattern: "payload.config.js",    match: filename, tag: payload-config, confidence: high }
+  - { pattern: "payload-types.ts",     match: filename, tag: payload-generated-types, confidence: high }
+
+  - { pattern: "collections",          match: path-segment, tag: payload-collections, confidence: high }
+  - { pattern: "globals",              match: path-segment, tag: payload-globals, confidence: medium }
+  - { pattern: "access",               match: path-segment, tag: payload-access-control, confidence: medium }
+  - { pattern: "fields",               match: path-segment, tag: payload-fields, confidence: medium }

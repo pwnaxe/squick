@@ -1,0 +1,29 @@
+[package]
+name = "squick-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+rust-version.workspace = true
+description = "Core types, scanner, AST extraction, and reference resolver for Squick: pre-computed LLM context for AI coding agents."
+readme = "../../readme.md"
+keywords = ["mcp", "ai", "llm", "context", "scanner"]
+categories = ["development-tools", "parser-implementations"]
+
+[dependencies]
+anyhow.workspace = true
+thiserror.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+toml.workspace = true
+walkdir.workspace = true
+ignore.workspace = true
+regex.workspace = true
+once_cell.workspace = true
+petgraph.workspace = true
+tree-sitter.workspace = true
+tree-sitter-typescript.workspace = true
+tree-sitter-javascript.workspace = true
+tree-sitter-python.workspace = true
