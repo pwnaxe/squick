@@ -9,6 +9,15 @@ members = [
     "bindings/node",
     "bindings/python",
 ]
+# Bindings require platform-specific toolchains (napi-rs / maturin) and are
+# built by their own workflows, not by `cargo build --workspace`.
+default-members = [
+    "crates/squick-core",
+    "crates/squick-dict",
+    "crates/squick-format",
+    "crates/squick-watch",
+    "crates/squick-cli",
+]
 
 [workspace.package]
 version = "1.0.0"
