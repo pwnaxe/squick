@@ -1,5 +1,5 @@
 {
-  "name": "@squick/linux-x64",
+  "name": "@hubhorizonllc/squick-linux-x64",
   "version": "1.0.0",
   "description": "Squick binary for Linux x86_64.",
   "license": "Apache-2.0",

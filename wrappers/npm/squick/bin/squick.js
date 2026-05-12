@@ -15,11 +15,11 @@ const fs = require("node:fs");
 const PLATFORM = `${process.platform}-${process.arch}`;
 
 const SUPPORTED = new Map([
-  ["linux-x64", "@squick/linux-x64"],
-  ["linux-arm64", "@squick/linux-arm64"],
-  ["darwin-x64", "@squick/darwin-x64"],
-  ["darwin-arm64", "@squick/darwin-arm64"],
-  ["win32-x64", "@squick/win32-x64"],
+  ["linux-x64", "@hubhorizonllc/squick-linux-x64"],
+  ["linux-arm64", "@hubhorizonllc/squick-linux-arm64"],
+  ["darwin-x64", "@hubhorizonllc/squick-darwin-x64"],
+  ["darwin-arm64", "@hubhorizonllc/squick-darwin-arm64"],
+  ["win32-x64", "@hubhorizonllc/squick-win32-x64"],
 ]);
 
 const pkgName = SUPPORTED.get(PLATFORM);

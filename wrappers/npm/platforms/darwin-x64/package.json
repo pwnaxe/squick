@@ -1,5 +1,5 @@
 {
-  "name": "@squick/darwin-x64",
+  "name": "@hubhorizonllc/squick-darwin-x64",
   "version": "1.0.0",
   "description": "Squick binary for macOS x86_64.",
   "license": "Apache-2.0",

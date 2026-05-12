@@ -1,5 +1,5 @@
 {
-  "name": "@squick/darwin-arm64",
+  "name": "@hubhorizonllc/squick-darwin-arm64",
   "version": "1.0.0",
   "description": "Squick binary for macOS Apple Silicon.",
   "license": "Apache-2.0",

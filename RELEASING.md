@@ -14,8 +14,9 @@ all supported distribution channels.
 
 ### npm
 
-1. Create an account at <https://www.npmjs.com> and reserve the
-   `squick` package name and the `@squick` scope.
+1. Create an account at <https://www.npmjs.com>, create the
+   `hubhorizonllc` organization, and reserve the `squick` package
+   name (unscoped, published under the org).
 2. Generate an automation token (Access Tokens -> Generate New Token
    -> Automation).
 3. Add it to the repository as the `NPM_TOKEN` secret.
