@@ -1,5 +1,5 @@
 {
-  "name": "squick",
+  "name": "@hubhorizonllc/squick",
   "version": "1.0.0",
   "description": "Pre-computed LLM context for AI coding agents.",
   "license": "Apache-2.0",

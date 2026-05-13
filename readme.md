@@ -14,10 +14,33 @@ AI coding agents currently spend tokens "looking around" the repository
 before answering even simple questions. Squick inverts that cost: do
 the analysis once at file save, save tokens on every prompt thereafter.
 
+## Install
+
+```bash
+# npm (recommended for AI-agent users — works with `npx -y` too)
+npm i -g @hubhorizonllc/squick
+
+# PyPI
+pip install squick
+
+# crates.io
+cargo install squick-cli
+
+# Direct binary (Unix)
+curl --proto '=https' --tlsv1.2 -LsSf \
+  https://github.com/pwnaxe/squick/releases/latest/download/squick-cli-installer.sh | sh
+
+# Direct binary (Windows)
+irm https://github.com/pwnaxe/squick/releases/latest/download/squick-cli-installer.ps1 | iex
+```
+
+All channels install the same binary, exposed on `PATH` as `squick`.
+You can also build from source with `cargo build -p squick-cli --release`.
+
 ## Quick start
 
 ```bash
-cargo run -p squick-cli --release -- scan ./your-project
+squick scan ./your-project
 ```
 
 This writes two files:
@@ -102,7 +125,10 @@ Tools exposed:
 
 ### Configure Claude Code
 
-Add to your Claude Code config (`~/.claude/config.json` or equivalent):
+Add to your Claude Code config (`~/.claude/config.json` or equivalent).
+
+If you already ran `npm i -g @hubhorizonllc/squick` (or any other
+install channel), point the host at the binary on `PATH`:
 
 ```json
 {
@@ -115,9 +141,24 @@ Add to your Claude Code config (`~/.claude/config.json` or equivalent):
 }
 ```
 
+If you'd rather not install globally, use `npx` for zero-footprint
+invocation — the binary is downloaded once and cached:
+
+```json
+{
+  "mcpServers": {
+    "squick": {
+      "command": "npx",
+      "args": ["-y", "@hubhorizonllc/squick", "mcp"]
+    }
+  }
+}
+```
+
 ### Configure Cursor
 
-Add to `.cursor/mcp.json` in your project (or global settings):
+Add the same shape to `.cursor/mcp.json` in your project (or global
+settings):
 
 ```json
 {

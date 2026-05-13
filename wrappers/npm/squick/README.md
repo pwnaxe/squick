@@ -1,18 +1,23 @@
-# squick
+# @hubhorizonllc/squick
 
 Pre-computed, LLM-targeted code context for AI coding agents.
 
 This npm package is a thin wrapper that installs the right
 platform-specific binary via `optionalDependencies` and exposes it as
-the `squick` command.
+the `squick` command. The npm name `squick` was already taken in
+2015 by an unrelated, abandoned dustjs/markdown plugin, so the
+Horizon LLC distribution lives under the org scope. On PyPI and
+crates.io the package is unscoped (`squick`) as expected.
 
 ## Install
 
 ```bash
-npm i -g squick
-# or, for one-off MCP usage:
-npx -y squick mcp
+npm i -g @hubhorizonllc/squick
+# or, for one-off MCP usage (no install footprint):
+npx -y @hubhorizonllc/squick mcp
 ```
+
+After install, the binary is on `PATH` as plain `squick`.
 
 ## Usage
 

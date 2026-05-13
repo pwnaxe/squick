@@ -14,9 +14,12 @@ all supported distribution channels.
 
 ### npm
 
-1. Create an account at <https://www.npmjs.com>, create the
-   `hubhorizonllc` organization, and reserve the `squick` package
-   name (unscoped, published under the org).
+1. Create an account at <https://www.npmjs.com> and create the
+   `hubhorizonllc` organization. The umbrella package publishes as
+   `@hubhorizonllc/squick`; the unscoped `squick` name is already
+   owned by an unrelated 2015 gulp plugin (`yourpalal`). All
+   platform packages live under the same scope
+   (`@hubhorizonllc/squick-<platform>`).
 2. Generate an automation token (Access Tokens -> Generate New Token
    -> Automation).
 3. Add it to the repository as the `NPM_TOKEN` secret.
@@ -128,9 +131,11 @@ squick --version
 # GitHub Releases (Windows)
 irm https://github.com/<org>/squick/releases/download/v1.0.0/squick-cli-installer.ps1 | iex
 
-# npm (and MCP one-liner)
-npm i -g squick && squick --version
-npx -y squick mcp   # runs the MCP server with zero install footprint
+# npm (and MCP one-liner). The npm name "squick" was taken in 2015,
+# so the umbrella package lives at @hubhorizonllc/squick. The binary
+# on PATH is still plain `squick`.
+npm i -g @hubhorizonllc/squick && squick --version
+npx -y @hubhorizonllc/squick mcp   # runs the MCP server with zero install footprint
 
 # PyPI
 pip install squick && squick --version
@@ -144,7 +149,7 @@ channel, so auto-discovery works without further configuration.
 
 - **crates.io** — `cargo install squick-cli` (configured)
 - **GitHub Releases** — `curl ... | sh` or `irm ... | iex` (configured)
-- **npm** — `npm i -g squick` or `npx -y squick mcp` (configured)
+- **npm** — `npm i -g @hubhorizonllc/squick` or `npx -y @hubhorizonllc/squick mcp` (configured; scoped because unscoped `squick` was taken in 2015)
 - **PyPI** — `pip install squick` (configured)
 - **VS Code Marketplace** — extension stub only, planned for 1.x
 
