@@ -2,6 +2,13 @@
 # after a SemVer tag is pushed. Runs in parallel with `release.yml` and
 # the publish-{npm,pypi}.yml workflows; there is no coupling between
 # crates.io and the binary distribution channels.
+#
+# Dry-run mode (workflow_dispatch, dry_run=true) only verifies
+# `squick-core`. The downstream crates depend on it via `version = "=1.0.0"`,
+# so until that version of `squick-core` exists on crates.io they cannot
+# be dry-run packaged — there is no `--offline` shortcut around this in
+# stable cargo. A passing `squick-core` dry-run is a strong signal that
+# the real publish will succeed for the rest of the workspace.
 name: publish-crates
 on:
   push:
@@ -10,20 +17,24 @@ on:
   workflow_dispatch:
     inputs:
       dry_run:
-        description: "Run cargo publish with --dry-run (no upload)"
+        description: "Run cargo publish with --dry-run (validates squick-core only)"
         required: false
         default: "false"
 
 permissions:
   contents: read
 
+env:
+  # Newer GitHub Actions runners default to Node.js 24; opting in
+  # explicitly silences the Node 20 deprecation warning emitted by
+  # actions/checkout and actions/cache.
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 jobs:
   publish:
     runs-on: ubuntu-latest
     env:
       CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-      # Crates.io's sparse index lets the resolver see a freshly
-      # published crate within seconds rather than minutes.
       CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
     steps:
       - uses: actions/checkout@v4
@@ -47,40 +58,50 @@ jobs:
         id: mode
         run: |
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
-            echo "flag=--dry-run --allow-dirty" >> "$GITHUB_OUTPUT"
-            echo "Running in DRY-RUN mode"
+            echo "dry=true" >> "$GITHUB_OUTPUT"
+            echo "Running in DRY-RUN mode (squick-core only)"
           else
-            echo "flag=" >> "$GITHUB_OUTPUT"
+            echo "dry=false" >> "$GITHUB_OUTPUT"
             echo "Running in REAL publish mode"
           fi
 
+      # Always runs. In dry-run mode this is the only validation step.
       - name: Publish squick-core
-        run: cargo publish -p squick-core ${{ steps.mode.outputs.flag }}
+        run: |
+          if [ "${{ steps.mode.outputs.dry }}" = "true" ]; then
+            cargo publish -p squick-core --dry-run --allow-dirty
+          else
+            cargo publish -p squick-core
+          fi
 
       - name: Wait for index
-        if: ${{ steps.mode.outputs.flag == '' }}
+        if: steps.mode.outputs.dry == 'false'
         run: sleep 30
 
       - name: Publish squick-dict
-        run: cargo publish -p squick-dict ${{ steps.mode.outputs.flag }}
+        if: steps.mode.outputs.dry == 'false'
+        run: cargo publish -p squick-dict
 
       - name: Wait for index
-        if: ${{ steps.mode.outputs.flag == '' }}
+        if: steps.mode.outputs.dry == 'false'
         run: sleep 30
 
       - name: Publish squick-format
-        run: cargo publish -p squick-format ${{ steps.mode.outputs.flag }}
+        if: steps.mode.outputs.dry == 'false'
+        run: cargo publish -p squick-format
 
       - name: Wait for index
-        if: ${{ steps.mode.outputs.flag == '' }}
+        if: steps.mode.outputs.dry == 'false'
         run: sleep 30
 
       - name: Publish squick-watch
-        run: cargo publish -p squick-watch ${{ steps.mode.outputs.flag }}
+        if: steps.mode.outputs.dry == 'false'
+        run: cargo publish -p squick-watch
 
       - name: Wait for index
-        if: ${{ steps.mode.outputs.flag == '' }}
+        if: steps.mode.outputs.dry == 'false'
         run: sleep 30
 
       - name: Publish squick-cli
-        run: cargo publish -p squick-cli ${{ steps.mode.outputs.flag }}
+        if: steps.mode.outputs.dry == 'false'
+        run: cargo publish -p squick-cli
