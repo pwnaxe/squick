@@ -1,5 +1,5 @@
 name: frameworks/react
-description: React markers — hooks, HOCs, JSX-based identifiers.
+description: React markers - hooks, HOCs, JSX-based identifiers.
 entries:
   - { pattern: "react",        match: import,      tag: framework-react,  confidence: high }
   - { pattern: "react-dom",    match: import,      tag: framework-react,  confidence: high }

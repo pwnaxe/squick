@@ -1,11 +1,7 @@
 // Copyright 2026 Horizon LLC
 // SPDX-License-Identifier: Apache-2.0
 
-//! Tree-sitter AST to [`FileSummary`] extraction.
-//!
-//! A single recursive walker handles every supported language. Per-language
-//! constructs are dispatched by node kind so that the language-by-construct
-//! matrix stays in one place.
+//! Recursive walker that turns a Tree-sitter tree into a `FileSummary`.
 
 use crate::language::Language;
 use crate::types::{
@@ -274,8 +270,7 @@ fn text<'s>(node: Node<'_>, source: &'s [u8]) -> &'s str {
     node.utf8_text(source).unwrap_or("")
 }
 
-/// Returns the rightmost identifier of a callee expression, walking
-/// `member_expression` (JS/TS) or `attribute` (Python) chains.
+// Rightmost identifier of `foo.bar.baz()` / `foo.bar.baz()` (Python).
 fn extract_callee_name(node: Node<'_>, source: &[u8]) -> Option<String> {
     match node.kind() {
         "identifier" | "property_identifier" | "private_property_identifier" => {
@@ -298,8 +293,8 @@ fn is_component_name(name: &str) -> bool {
         .is_some_and(|c| c.is_ascii_uppercase())
 }
 
-/// Keeps PascalCase JSX components and semantic HTML5 region tags;
-/// drops generic container tags whose presence carries no useful signal.
+// PascalCase components + a small HTML5 semantic whitelist. Skips noise
+// like <div>, <span>, <p>.
 fn is_jsx_tag_worth_keeping(name: &str) -> bool {
     if is_component_name(name) {
         return true;
@@ -327,10 +322,7 @@ fn is_jsx_tag_worth_keeping(name: &str) -> bool {
     SEMANTIC_TAGS.contains(&name)
 }
 
-/// True when the callee is a bare identifier (free function call) rather
-/// than a member or attribute access. Member calls require type-aware
-/// resolution that the name-based resolver cannot provide, so they are
-/// excluded from the call graph.
+// Only bare `foo()` calls; member calls need type info we don't have.
 fn is_free_callee(node: Node<'_>) -> bool {
     matches!(node.kind(), "identifier")
 }
@@ -364,8 +356,7 @@ fn nth_named_arg<'tree>(call: Node<'tree>, n: usize) -> Option<Node<'tree>> {
     call.child_by_field_name("arguments")?.named_child(n)
 }
 
-/// Extracts `app.get("/path", handler)` and similar Express/Koa/Fastify
-/// style endpoint declarations.
+// Express / Koa / Fastify: `app.get("/path", handler)`.
 fn extract_js_method_call_endpoint(
     call: Node<'_>,
     callee: Node<'_>,
@@ -392,7 +383,7 @@ fn extract_js_method_call_endpoint(
     })
 }
 
-/// Extracts `path("about/", views.about)` style Django urlpatterns entries.
+// Django: `path("about/", views.about)`.
 fn extract_django_urlpattern(call: Node<'_>, source: &[u8]) -> Option<Endpoint> {
     let first_arg = first_named_arg(call)?;
     let raw_path = string_literal_value(first_arg, source)?;
@@ -407,11 +398,8 @@ fn extract_django_urlpattern(call: Node<'_>, source: &[u8]) -> Option<Endpoint> 
     })
 }
 
-/// Recognizes Next.js App Router `route.{ts,js,tsx,jsx}` files and, when
-/// they export uppercase HTTP-method symbols, records each as an
-/// endpoint whose path is derived from the directory layout under
-/// `app/`. Catch-all and dynamic segments are translated to the
-/// `:param` / `*param` form for readability.
+// Next.js App Router: `export async function GET(req)` etc. inside
+// `app/.../route.ts`. The URL is reconstructed from the file path.
 fn detect_nextjs_route_handlers(out: &mut FileSummary) {
     let Some(filename) = out.path.file_name().and_then(|n| n.to_str()) else {
         return;
@@ -494,9 +482,7 @@ fn normalize_django_path(raw: &str) -> String {
     format!("/{raw}")
 }
 
-/// `re_path()` accepts a regular expression rather than a path literal.
-/// Heuristic: a regex usually anchors with `^` or contains escaped
-/// metacharacters that wouldn't appear in a real URL.
+// Heuristic for Django `re_path` arguments vs ordinary paths.
 fn is_regex_path(raw: &str) -> bool {
     raw.starts_with('^')
         || raw.contains("\\d")
@@ -593,7 +579,7 @@ mod tests {
     }
 }
 
-/// Extracts FastAPI / Flask / NestJS-Python style decorator endpoints.
+// FastAPI / Flask / NestJS-Py decorators: `@app.get("/x")`, `@router.post(...)`.
 fn extract_python_decorated_endpoints(node: Node<'_>, source: &[u8], out: &mut FileSummary) {
     let mut handler_name: Option<String> = None;
     let mut cursor = node.walk();

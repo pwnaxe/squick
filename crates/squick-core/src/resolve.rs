@@ -1,22 +1,8 @@
 // Copyright 2026 Horizon LLC
 // SPDX-License-Identifier: Apache-2.0
 
-//! Cross-file reference resolution.
-//!
-//! Builds a global symbol index by name, then walks the call sites
-//! collected by `extract` and attaches a `Reference` to every matching
-//! symbol. Resolution is name-based and does not track scopes, imports,
-//! or aliases. The resolver applies two precision heuristics:
-//!
-//! 1. When the same name is defined in multiple files and a candidate
-//!    lives in the same file as the call site, only that same-file
-//!    candidate is referenced. This prevents an `App` symbol in
-//!    `pages/foo` from being attributed to every `App` defined elsewhere.
-//!
-//! 2. When the call site is in a different file from every candidate
-//!    and the candidate count exceeds [`AMBIGUITY_THRESHOLD`], the call
-//!    is skipped entirely. Above the threshold, cross-file attribution
-//!    is more likely noise than signal.
+//! Name-based call site resolver. Prefers same-file matches; drops
+//! cross-file calls with more than [`AMBIGUITY_THRESHOLD`] candidates.
 
 use crate::types::{CallSite, Project, Reference};
 use std::collections::HashMap;

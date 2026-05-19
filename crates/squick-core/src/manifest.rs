@@ -1,19 +1,9 @@
 // Copyright 2026 Horizon LLC
 // SPDX-License-Identifier: Apache-2.0
 
-//! Discovery and parsing of project manifests and data schemas.
-//!
-//! Two artifacts are extracted alongside source code:
-//!
-//! * **Manifests** (currently `package.json`) — declare project identity,
-//!   dependencies, and framework affinity. The Node.js layer of a project
-//!   may be configured purely through these files even when no JavaScript
-//!   import discloses the framework.
-//!
-//! * **Strapi content-type schemas** (`schema.json`) — declare the data
-//!   surface of the CMS. They are extracted into a dedicated artifact
-//!   because LLM agents rarely need them, but when they do, the value
-//!   is high.
+//! Walks the project tree for `package.json`, `pyproject.toml`, and Strapi
+//! `schema.json` files. Found data lands on `Project.manifests` and
+//! `Project.strapi_schemas`.
 
 use crate::types::{
     Confidence, Manifest, ManifestKind, Project, SemanticTag, StrapiAttribute, StrapiSchema,

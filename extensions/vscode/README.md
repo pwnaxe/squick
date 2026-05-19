@@ -4,9 +4,9 @@ Pre-computed LLM context for AI agents inside VS Code.
 
 ## Features
 
-- `Squick: Scan workspace` — one-shot scan, writes `.squick/context.md`.
-- `Squick: Toggle watch mode` — live rescan on file save.
-- `@squick` chat participant — answers Copilot Chat questions with bundled
+- `Squick: Scan workspace` - one-shot scan, writes `.squick/context.md`.
+- `Squick: Toggle watch mode` - live rescan on file save.
+- `@squick` chat participant - answers Copilot Chat questions with bundled
   project context.
 
 ## Status

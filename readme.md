@@ -17,7 +17,7 @@ the analysis once at file save, save tokens on every prompt thereafter.
 ## Install
 
 ```bash
-# npm (recommended for AI-agent users — works with `npx -y` too)
+# npm (recommended for AI-agent users - works with `npx -y` too)
 npm i -g @hubhorizonllc/squick
 
 # PyPI
@@ -45,10 +45,10 @@ squick scan ./your-project
 
 This writes two files:
 
-- `.squick/context.md` — primary, always read by the agent. Compact
+- `.squick/context.md` - primary, always read by the agent. Compact
   project map: structure, frameworks, files, symbols, references,
   endpoints.
-- `.squick/schemas.md` — auxiliary, read on demand. Dependency
+- `.squick/schemas.md` - auxiliary, read on demand. Dependency
   manifests, full endpoint table, content-type schemas (Strapi,
   more coming).
 
@@ -57,7 +57,7 @@ This writes two files:
 - **Structure** (Tree-sitter): symbols, imports, JSX components, doc comments, references.
 - **Heuristics**: function-name verbs, suffixes, Python dunders, framework markers.
 - **Dictionaries** (YAML): conventional routes (`/about`, `/login`), file roles (`models.py`, `route.ts`), framework affinity.
-- **Manifests**: `package.json` and `pyproject.toml` — project identity, dependencies, scripts, framework detection.
+- **Manifests**: `package.json` and `pyproject.toml` - project identity, dependencies, scripts, framework detection.
 - **Endpoints**: FastAPI/Flask decorators, Django urlpatterns, Express member-calls, Next.js App Router file layout.
 - **Data schemas**: Strapi content types (kind, names, attributes, relations).
 
@@ -115,12 +115,12 @@ context on demand rather than re-reading source files.
 
 Tools exposed:
 
-- `squick_scan(root)` — full project context as markdown.
-- `squick_get_endpoints(root)` — HTTP endpoints as JSON (FastAPI,
+- `squick_scan(root)` - full project context as markdown.
+- `squick_get_endpoints(root)` - HTTP endpoints as JSON (FastAPI,
   Flask, Django, Express, Next.js App Router).
-- `squick_get_schemas(root)` — data schemas as JSON (Strapi content
+- `squick_get_schemas(root)` - data schemas as JSON (Strapi content
   types and their attributes).
-- `squick_get_file_context(root, file)` — context for one file only,
+- `squick_get_file_context(root, file)` - context for one file only,
   cheaper than a full scan.
 
 ### Configure Claude Code
@@ -142,7 +142,7 @@ install channel), point the host at the binary on `PATH`:
 ```
 
 If you'd rather not install globally, use `npx` for zero-footprint
-invocation — the binary is downloaded once and cached:
+invocation - the binary is downloaded once and cached:
 
 ```json
 {

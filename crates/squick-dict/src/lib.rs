@@ -1,13 +1,9 @@
 // Copyright 2026 Horizon LLC
 // SPDX-License-Identifier: Apache-2.0
 
-//! Pattern dictionary engine.
-//!
-//! Dictionaries are YAML files grouped by category (routes, components,
-//! files, frameworks, naming). Each entry declares a pattern (literal,
-//! glob, or regex), a target tag, and a confidence level. The matcher
-//! applies them against `Symbol` and `FileSummary` values produced by
-//! `squick-core`.
+//! YAML pattern dictionaries. Each entry maps a pattern (literal / glob /
+//! regex) on a given surface (filename, symbol, import, ...) to a tag with
+//! a confidence level.
 
 pub mod loader;
 pub mod matcher;

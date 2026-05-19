@@ -147,11 +147,11 @@ channel, so auto-discovery works without further configuration.
 
 ## Distribution channels
 
-- **crates.io** — `cargo install squick-cli` (configured)
-- **GitHub Releases** — `curl ... | sh` or `irm ... | iex` (configured)
-- **npm** — `npm i -g @hubhorizonllc/squick` or `npx -y @hubhorizonllc/squick mcp` (configured; scoped because unscoped `squick` was taken in 2015)
-- **PyPI** — `pip install squick` (configured)
-- **VS Code Marketplace** — extension stub only, planned for 1.x
+- **crates.io** - `cargo install squick-cli` (configured)
+- **GitHub Releases** - `curl ... | sh` or `irm ... | iex` (configured)
+- **npm** - `npm i -g @hubhorizonllc/squick` or `npx -y @hubhorizonllc/squick mcp` (configured; scoped because unscoped `squick` was taken in 2015)
+- **PyPI** - `pip install squick` (configured)
+- **VS Code Marketplace** - extension stub only, planned for 1.x
 
 ## Rolling back
 

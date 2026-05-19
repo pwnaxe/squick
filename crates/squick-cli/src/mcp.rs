@@ -1,13 +1,9 @@
 // Copyright 2026 Horizon LLC
 // SPDX-License-Identifier: Apache-2.0
 
-//! Model Context Protocol server.
-//!
-//! Exposes Squick as a set of MCP tools so AI agents (Claude Code,
-//! Cursor, Cline, and any other MCP-aware host) can pull project
-//! context on demand rather than re-reading source files. The server
-//! speaks JSON-RPC over stdio, the conventional transport for
-//! locally-spawned MCP servers.
+//! MCP server (stdio transport) backed by `rmcp`. Exposes four tools:
+//! `squick_scan`, `squick_get_endpoints`, `squick_get_schemas`,
+//! `squick_get_file_context`.
 
 use anyhow::Result;
 use rmcp::{

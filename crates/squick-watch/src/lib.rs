@@ -1,11 +1,7 @@
 // Copyright 2026 Horizon LLC
 // SPDX-License-Identifier: Apache-2.0
 
-//! Debounced file watcher.
-//!
-//! Invokes a callback with each batch of changed paths after a debounce
-//! window. The watcher does no scanning; the consumer decides what to
-//! re-scan, which keeps semantics in `squick-core`.
+//! Debounced filesystem watcher built on `notify` + `notify-debouncer-mini`.
 
 use anyhow::Result;
 use notify::RecursiveMode;

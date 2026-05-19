@@ -1,12 +1,8 @@
 // Copyright 2026 Horizon LLC
 // SPDX-License-Identifier: Apache-2.0
 
-//! Structural and semantic analysis of source code.
-//!
-//! This crate is language- and framework-agnostic at the orchestration
-//! layer. Per-language behavior is contained in `parser` and `extract`;
-//! per-domain knowledge (such as framework conventions or naming patterns)
-//! lives in the `squick-dict` crate.
+//! Scanner, parser, and extractor. Language-specific logic sits in
+//! `parser`/`extract`; framework dictionaries live in `squick-dict`.
 
 pub mod error;
 pub mod extract;

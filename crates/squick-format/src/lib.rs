@@ -1,11 +1,7 @@
 // Copyright 2026 Horizon LLC
 // SPDX-License-Identifier: Apache-2.0
 
-//! Output formatting for Squick.
-//!
-//! Two formats are first-class: markdown for `.squick/context.md`, the
-//! universal artifact every AI agent can read; and JSON for programmatic
-//! consumers such as the VS Code extension and custom agents.
+//! Markdown and JSON renderers for `Project` and its sub-artifacts.
 
 pub mod json;
 pub mod markdown;

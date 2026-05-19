@@ -1,5 +1,5 @@
 name: frameworks/django
-description: Django markers — imports and conventional layout.
+description: Django markers - imports and conventional layout.
 entries:
   - { pattern: "django",        kind: glob, match: import, tag: framework-django, confidence: high }
   - { pattern: "django.*",      kind: glob, match: import, tag: framework-django, confidence: high }

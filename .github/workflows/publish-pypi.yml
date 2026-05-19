@@ -113,5 +113,5 @@ jobs:
       - uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist
-          # Uses trusted publishing (OIDC) — configure on PyPI side
+          # Uses trusted publishing (OIDC) - configure on PyPI side
           # via "Trusted Publisher Management" for the squick project.

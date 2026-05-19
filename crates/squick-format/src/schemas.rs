@@ -1,11 +1,7 @@
 // Copyright 2026 Horizon LLC
 // SPDX-License-Identifier: Apache-2.0
 
-//! Auxiliary output describing project data schemas and manifests.
-//!
-//! Emitted to `.squick/schemas.md` so the primary `context.md` stays
-//! compact. AI agents fetch this artifact only when they need API,
-//! data model, or dependency detail.
+//! `schemas.md` renderer: manifests, Strapi content types, and endpoints.
 
 use squick_core::{Endpoint, Project, StrapiSchema};
 use std::fmt::Write;

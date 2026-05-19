@@ -6,7 +6,7 @@
 # Dry-run mode (workflow_dispatch, dry_run=true) only verifies
 # `squick-core`. The downstream crates depend on it via `version = "=1.0.0"`,
 # so until that version of `squick-core` exists on crates.io they cannot
-# be dry-run packaged — there is no `--offline` shortcut around this in
+# be dry-run packaged - there is no `--offline` shortcut around this in
 # stable cargo. A passing `squick-core` dry-run is a strong signal that
 # the real publish will succeed for the rest of the workspace.
 name: publish-crates
