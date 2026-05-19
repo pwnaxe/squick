@@ -5,8 +5,9 @@
 # package.
 name: publish-npm
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - "**[0-9]+.[0-9]+.[0-9]+*"
   workflow_dispatch:
     inputs:
       tag:
@@ -34,11 +35,29 @@ jobs:
           if [ -n "${{ github.event.inputs.tag }}" ]; then
             TAG="${{ github.event.inputs.tag }}"
           else
-            TAG="${{ github.event.release.tag_name }}"
+            TAG="${GITHUB_REF#refs/tags/}"
           fi
           VERSION="${TAG#v}"
           echo "tag=$TAG"     >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for release.yml to upload binaries
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # release.yml runs in parallel on tag push and takes ~5-7 min to
+          # finish all platform builds. Poll until the archives are present
+          # on the release before downloading them.
+          for attempt in $(seq 1 60); do
+            if gh release view "${{ steps.tag.outputs.tag }}" \
+                 --json assets --jq '.assets[].name' 2>/dev/null \
+                 | grep -q 'squick-cli-x86_64-unknown-linux-gnu.tar.xz'; then
+              echo "Release assets ready after ${attempt} attempts"
+              break
+            fi
+            echo "Waiting for release assets... attempt ${attempt}/60"
+            sleep 30
+          done
 
       - name: Download release archives
         env:
