@@ -16,7 +16,6 @@ on:
 
 permissions:
   contents: read
-  id-token: write
 
 jobs:
   publish:
@@ -114,6 +113,8 @@ jobs:
           node -e "const f='wrappers/npm/squick/package.json';const p=require('path').resolve(f);const j=require(p);j.version=process.env.VERSION;for(const k of Object.keys(j.optionalDependencies||{})){j.optionalDependencies[k]=process.env.VERSION;}require('fs').writeFileSync(p, JSON.stringify(j,null,2)+'\n');"
           cp LICENSE wrappers/npm/squick/LICENSE
 
+      # Provenance is intentionally omitted: it would require this repository
+      # to be public, which is a deliberate non-goal for this distribution.
       - name: Publish platform packages
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -121,10 +122,10 @@ jobs:
           set -euo pipefail
           for dir in wrappers/npm/platforms/*/; do
             echo "Publishing ${dir}"
-            npm publish "${dir}" --access public --provenance
+            npm publish "${dir}" --access public
           done
 
       - name: Publish umbrella package
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish wrappers/npm/squick --access public --provenance
+        run: npm publish wrappers/npm/squick --access public
