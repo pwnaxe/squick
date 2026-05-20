@@ -66,15 +66,16 @@ impl SquickServer {
     }
 
     #[tool(
-        description = "Scan a project and return its high-level summary as markdown (project overview, layout, manifests). Use squick_get_ndjson or squick_get_graph for the full structured graph."
+        description = "Scan a project and return the most useful summary: detected stack, library choices, repository layout, and API surface. Same content as `.squick/conventions.md`. Use squick_get_ndjson or squick_get_graph when you need the full structured graph."
     )]
     async fn squick_scan(
         &self,
         Parameters(args): Parameters<ScanArgs>,
     ) -> Result<CallToolResult, ErrorData> {
         let project = self.scan_project(&args.root)?;
-        let markdown = squick_format::format_markdown(&project);
-        Ok(CallToolResult::success(vec![Content::text(markdown)]))
+        Ok(CallToolResult::success(vec![Content::text(
+            squick_format::format_conventions(&project),
+        )]))
     }
 
     #[tool(

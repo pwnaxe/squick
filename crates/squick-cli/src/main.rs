@@ -20,7 +20,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
-    /// One-shot scan; writes context to `.squick/context.<fmt>`.
+    /// One-shot scan; writes `.squick/conventions.md` + `.squick/schemas.md`.
     Scan {
         #[arg(default_value = ".")]
         root: PathBuf,
@@ -39,6 +39,10 @@ enum Command {
         /// Skip writing the auxiliary `.squick/schemas.md` file.
         #[arg(long)]
         no_schemas: bool,
+        /// Also write the tool-only artifacts (`context.ndjson`, `graph.txt`)
+        /// alongside the chat-attachable ones.
+        #[arg(long)]
+        full: bool,
     },
     /// Watch the filesystem and rewrite context on change.
     Watch {
@@ -78,6 +82,7 @@ struct ScanFilters {
     includes: Vec<String>,
     excludes: Vec<String>,
     no_schemas: bool,
+    full: bool,
 }
 
 fn main() -> Result<()> {
@@ -91,6 +96,7 @@ fn main() -> Result<()> {
             includes,
             excludes,
             no_schemas,
+            full,
         } => cmd_scan(
             &root,
             format,
@@ -100,6 +106,7 @@ fn main() -> Result<()> {
                 includes,
                 excludes,
                 no_schemas,
+                full,
             },
         ),
         Command::Watch {
@@ -117,6 +124,7 @@ fn main() -> Result<()> {
                 includes,
                 excludes,
                 no_schemas,
+                full: false,
             },
         ),
         Command::Init { root } => cmd_init(&root),
@@ -166,34 +174,57 @@ fn cmd_scan(
         }
     };
     std::fs::write(&out_path, body)?;
-    eprintln!("squick: wrote {}", out_path.display());
 
     if matches!(format, OutputFormat::Markdown) && out.is_none() {
         let squick_dir = root.join(".squick");
         std::fs::create_dir_all(&squick_dir)?;
 
-        let ndjson_path = squick_dir.join("context.ndjson");
-        std::fs::write(&ndjson_path, squick_format::format_ndjson(&project))?;
-        eprintln!("squick: wrote {}", ndjson_path.display());
-
-        let graph_path = squick_dir.join("graph.txt");
-        std::fs::write(&graph_path, squick_format::format_triples(&project))?;
-        eprintln!("squick: wrote {}", graph_path.display());
-
         let conventions_path = squick_dir.join("conventions.md");
         std::fs::write(&conventions_path, squick_format::format_conventions(&project))?;
-        eprintln!("squick: wrote {}", conventions_path.display());
 
-        if !filters.no_schemas {
+        let schemas_written = if !filters.no_schemas {
             if let Some(schemas) = squick_format::format_schemas(&project) {
                 let schemas_path = squick_dir.join("schemas.md");
                 std::fs::write(&schemas_path, schemas)?;
-                eprintln!("squick: wrote {}", schemas_path.display());
+                true
+            } else {
+                false
             }
+        } else {
+            false
+        };
+
+        if filters.full {
+            let ndjson_path = squick_dir.join("context.ndjson");
+            std::fs::write(&ndjson_path, squick_format::format_ndjson(&project))?;
+            let graph_path = squick_dir.join("graph.txt");
+            std::fs::write(&graph_path, squick_format::format_triples(&project))?;
         }
+
+        report_outputs(root, schemas_written, filters.full);
+    } else {
+        eprintln!("squick: wrote {}", out_path.display());
     }
 
     Ok(())
+}
+
+fn report_outputs(root: &Path, schemas_written: bool, full: bool) {
+    let dir = root.join(".squick").display().to_string();
+    eprintln!("squick: wrote {}/", dir);
+    eprintln!("  conventions.md  - primary; attach to your AI chat for stack/architecture questions");
+    if schemas_written {
+        eprintln!("  schemas.md      - attach to your AI chat for data/API questions");
+    }
+    eprintln!("  context.md      - index pointing at the files above");
+    if full {
+        eprintln!("  context.ndjson  - structured facts (tool-only)");
+        eprintln!("  graph.txt       - dependency triples (tool-only)");
+    } else {
+        eprintln!();
+        eprintln!("  Tip: re-run with --full to also emit context.ndjson and graph.txt");
+        eprintln!("       for MCP servers and scripts.");
+    }
 }
 
 fn cmd_watch(
