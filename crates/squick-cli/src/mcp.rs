@@ -66,7 +66,7 @@ impl SquickServer {
     }
 
     #[tool(
-        description = "Scan a project directory and return its full structural context as Squick-formatted markdown: project overview, frameworks, files, symbols, references, and endpoints."
+        description = "Scan a project and return its high-level summary as markdown (project overview, layout, manifests). Use squick_get_ndjson or squick_get_graph for the full structured graph."
     )]
     async fn squick_scan(
         &self,
@@ -75,6 +75,45 @@ impl SquickServer {
         let project = self.scan_project(&args.root)?;
         let markdown = squick_format::format_markdown(&project);
         Ok(CallToolResult::success(vec![Content::text(markdown)]))
+    }
+
+    #[tool(
+        description = "Return the full project context as newline-delimited JSON. Each line is a fact (project, file, symbol, reference, endpoint, schema, manifest). Most compact format for LLM consumption."
+    )]
+    async fn squick_get_ndjson(
+        &self,
+        Parameters(args): Parameters<ScanArgs>,
+    ) -> Result<CallToolResult, ErrorData> {
+        let project = self.scan_project(&args.root)?;
+        Ok(CallToolResult::success(vec![Content::text(
+            squick_format::format_ndjson(&project),
+        )]))
+    }
+
+    #[tool(
+        description = "Return the project context as RDF-style triples (subject predicate object, one per line). Graph form for traversal queries."
+    )]
+    async fn squick_get_graph(
+        &self,
+        Parameters(args): Parameters<ScanArgs>,
+    ) -> Result<CallToolResult, ErrorData> {
+        let project = self.scan_project(&args.root)?;
+        Ok(CallToolResult::success(vec![Content::text(
+            squick_format::format_triples(&project),
+        )]))
+    }
+
+    #[tool(
+        description = "Return detected architectural conventions: stack, library choices, repository layout, API surface. Use this to answer 'which library does this project use for X' without scanning the codebase."
+    )]
+    async fn squick_get_conventions(
+        &self,
+        Parameters(args): Parameters<ScanArgs>,
+    ) -> Result<CallToolResult, ErrorData> {
+        let project = self.scan_project(&args.root)?;
+        Ok(CallToolResult::success(vec![Content::text(
+            squick_format::format_conventions(&project),
+        )]))
     }
 
     #[tool(

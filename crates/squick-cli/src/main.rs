@@ -168,11 +168,28 @@ fn cmd_scan(
     std::fs::write(&out_path, body)?;
     eprintln!("squick: wrote {}", out_path.display());
 
-    if matches!(format, OutputFormat::Markdown) && out.is_none() && !filters.no_schemas {
-        if let Some(schemas) = squick_format::format_schemas(&project) {
-            let schemas_path = root.join(".squick").join("schemas.md");
-            std::fs::write(&schemas_path, schemas)?;
-            eprintln!("squick: wrote {}", schemas_path.display());
+    if matches!(format, OutputFormat::Markdown) && out.is_none() {
+        let squick_dir = root.join(".squick");
+        std::fs::create_dir_all(&squick_dir)?;
+
+        let ndjson_path = squick_dir.join("context.ndjson");
+        std::fs::write(&ndjson_path, squick_format::format_ndjson(&project))?;
+        eprintln!("squick: wrote {}", ndjson_path.display());
+
+        let graph_path = squick_dir.join("graph.txt");
+        std::fs::write(&graph_path, squick_format::format_triples(&project))?;
+        eprintln!("squick: wrote {}", graph_path.display());
+
+        let conventions_path = squick_dir.join("conventions.md");
+        std::fs::write(&conventions_path, squick_format::format_conventions(&project))?;
+        eprintln!("squick: wrote {}", conventions_path.display());
+
+        if !filters.no_schemas {
+            if let Some(schemas) = squick_format::format_schemas(&project) {
+                let schemas_path = squick_dir.join("schemas.md");
+                std::fs::write(&schemas_path, schemas)?;
+                eprintln!("squick: wrote {}", schemas_path.display());
+            }
         }
     }
 

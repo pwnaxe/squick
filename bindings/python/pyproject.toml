@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "squick"
-version = "1.0.1"
+version = "1.1.0"
 description = "Pre-computed LLM context for AI agents"
 license = { text = "Apache-2.0" }
 authors = [{ name = "Horizon LLC" }]

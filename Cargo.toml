@@ -17,7 +17,7 @@ exclude = [
 ]
 
 [workspace.package]
-version = "1.0.1"
+version = "1.1.0"
 edition = "2021"
 license = "Apache-2.0"
 authors = ["Horizon LLC"]
@@ -26,10 +26,10 @@ homepage = "https://github.com/pwnaxe/squick"
 rust-version = "1.80"
 
 [workspace.dependencies]
-squick-core = { path = "crates/squick-core", version = "=1.0.1" }
-squick-dict = { path = "crates/squick-dict", version = "=1.0.1" }
-squick-format = { path = "crates/squick-format", version = "=1.0.1" }
-squick-watch = { path = "crates/squick-watch", version = "=1.0.1" }
+squick-core = { path = "crates/squick-core", version = "=1.1.0" }
+squick-dict = { path = "crates/squick-dict", version = "=1.1.0" }
+squick-format = { path = "crates/squick-format", version = "=1.1.0" }
+squick-watch = { path = "crates/squick-watch", version = "=1.1.0" }
 
 anyhow = "1"
 thiserror = "1"
