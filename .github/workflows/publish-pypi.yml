@@ -80,20 +80,28 @@ jobs:
           archive="_release/squick-cli-${{ matrix.platform.triple }}.${{ matrix.platform.archive_ext }}"
           if [[ "${{ matrix.platform.archive_ext }}" == "zip" ]]; then
             unzip -q "$archive" -d "$stage"
+            binary_path="$(find "$stage" -name 'squick.exe' -type f | head -n1)"
           else
             tar -xf "$archive" -C "$stage"
+            binary_path="$(find "$stage" -name 'squick' -type f | head -n1)"
           fi
-          inner="$(find "$stage" -mindepth 1 -maxdepth 1 -type d | head -n1)"
-          inner="${inner:-$stage}"
+          if [[ -z "$binary_path" ]]; then
+            echo "Binary not found in archive for ${{ matrix.platform.triple }}" >&2
+            ls -laR "$stage" >&2
+            exit 1
+          fi
+          inner="$(dirname "$binary_path")"
           target="wrappers/pypi/src/squick/_binary"
           mkdir -p "$target"
-          if [[ "${{ matrix.platform.triple }}" == *"windows"* ]]; then
-            cp "${inner}/squick.exe" "${target}/squick.exe"
-          else
-            cp "${inner}/squick" "${target}/squick"
+          cp "$binary_path" "${target}/$(basename "$binary_path")"
+          if [[ "${{ matrix.platform.triple }}" != *"windows"* ]]; then
             chmod +x "${target}/squick"
           fi
-          cp -R "${inner}/dictionaries" "${target}/dictionaries"
+          if [[ -d "${inner}/dictionaries" ]]; then
+            cp -R "${inner}/dictionaries" "${target}/dictionaries"
+          else
+            cp -R dictionaries "${target}/dictionaries"
+          fi
 
       - name: Build pure-python wheel
         working-directory: wrappers/pypi
