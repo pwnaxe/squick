@@ -1,0 +1,40 @@
+name: Feature request
+description: Suggest an enhancement
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before opening a request, please check the
+        [existing issues](https://github.com/pwnaxe/squick/issues) and the
+        [README](https://github.com/pwnaxe/squick/blob/main/readme.md).
+
+        For changes that affect the CLI surface, MCP tools, or output
+        formats, please describe the user-facing contract you are
+        proposing - not just the implementation.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to do that Squick does not handle well today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Sketch of the API, flag, dictionary entry, or output change.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Anything you tried or considered and rejected.
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: |
+        Is this a language addition? A new framework? A dictionary
+        entry? Knowing the scope helps us route the request.

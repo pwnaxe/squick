@@ -1,0 +1,70 @@
+name: Bug report
+description: Report something that is not working
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Please fill in everything you can - it
+        speeds triage significantly.
+
+        For security issues do not file a public issue; see
+        [SECURITY.md](https://github.com/pwnaxe/squick/blob/main/SECURITY.md).
+  - type: input
+    id: version
+    attributes:
+      label: Squick version
+      description: Output of `squick --version`.
+      placeholder: "squick 1.3.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: Install channel
+      options:
+        - npm (@hubhorizonllc/squick)
+        - PyPI (squick)
+        - crates.io (squick-cli)
+        - GitHub Releases (curl / irm installer)
+        - Built from source
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system and architecture
+      placeholder: "macOS 14.5 arm64"
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction
+      description: Minimal steps and the exact command that triggers the bug.
+      placeholder: |
+        1. `git clone ...`
+        2. `cd ...`
+        3. `squick scan .`
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+      description: Error output, stderr, screenshots if useful.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional context
+      description: Project layout, frameworks involved, anything unusual.

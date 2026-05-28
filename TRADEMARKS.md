@@ -30,8 +30,7 @@ out the terms on which the Marks may be used.
 
 ## Requesting authorization
 
-Direct trademark licensing inquiries to legal@horizon-llc.example (replace
-with the production contact prior to public release).
+Direct trademark licensing inquiries to <marketing@hubhorizon.tech>.
 
 ## Reservation of rights
 

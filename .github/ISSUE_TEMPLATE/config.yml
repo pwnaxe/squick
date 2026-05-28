@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security issue
+    url: https://github.com/pwnaxe/squick/blob/main/SECURITY.md
+    about: Please report security issues privately, not in public issues.
+  - name: Commercial support
+    url: https://pixelhorizon.dev
+    about: Custom integrations, on-prem deployment, SLAs, or paid support.
