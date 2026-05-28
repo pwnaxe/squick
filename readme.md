@@ -1,12 +1,17 @@
 # Squick
 
+[![crates.io](https://img.shields.io/crates/v/squick-cli.svg?style=flat-square&logo=rust)](https://crates.io/crates/squick-cli)
+[![npm](https://img.shields.io/npm/v/@hubhorizonllc/squick.svg?style=flat-square&logo=npm)](https://www.npmjs.com/package/@hubhorizonllc/squick)
+[![PyPI](https://img.shields.io/pypi/v/squick.svg?style=flat-square&logo=pypi)](https://pypi.org/project/squick/)
+[![License: Apache 2.0](https://img.shields.io/badge/license-Apache_2.0-blue.svg?style=flat-square)](LICENSE)
+
 Pre-computed, LLM-targeted code context for AI coding agents.
 
 Squick scans a codebase, extracts structural facts (call graph, imports,
 symbols, framework markers, HTTP endpoints, content-type schemas, route
-patterns, dependency manifests), runs them through a tunable dictionary
-of patterns, and emits a compact context file that AI agents read
-instead of re-scanning the repository on every prompt.
+patterns, dependency manifests), and emits a small set of artifacts
+that AI agents read instead of re-scanning the repository on every
+prompt.
 
 ## Why
 
@@ -35,7 +40,6 @@ irm https://github.com/pwnaxe/squick/releases/latest/download/squick-cli-install
 ```
 
 All channels install the same binary, exposed on `PATH` as `squick`.
-You can also build from source with `cargo build -p squick-cli --release`.
 
 ## Quick start
 
@@ -43,29 +47,37 @@ You can also build from source with `cargo build -p squick-cli --release`.
 squick scan ./your-project
 ```
 
-This writes two files:
+Writes a small set of artifacts to `.squick/`:
 
-- `.squick/context.md` - primary, always read by the agent. Compact
-  project map: structure, frameworks, files, symbols, references,
-  endpoints.
-- `.squick/schemas.md` - auxiliary, read on demand. Dependency
-  manifests, full endpoint table, content-type schemas (Strapi,
-  more coming).
+- **`conventions.md`** - detected stack, library choices, repository
+  layout, API surface. **Attach this to your AI chat** when asking
+  about architecture or library usage.
+- **`schemas.md`** - extracted data schemas (Strapi content types) and
+  HTTP endpoints. **Attach this to your AI chat** for backend, data,
+  or API questions.
+- `context.md` - tiny index pointing at the two files above.
+
+For programmatic consumers (MCP servers, scripts) add `--full`:
+
+```bash
+squick scan ./your-project --full
+```
+
+This additionally writes `context.ndjson` (one JSON fact per line) and
+`graph.txt` (subject-predicate-object triples).
 
 ## What gets extracted
 
 - **Structure** (Tree-sitter): symbols, imports, JSX components, doc comments, references.
 - **Heuristics**: function-name verbs, suffixes, Python dunders, framework markers.
-- **Dictionaries** (YAML): conventional routes (`/about`, `/login`), file roles (`models.py`, `route.ts`), framework affinity.
-- **Manifests**: `package.json` and `pyproject.toml` - project identity, dependencies, scripts, framework detection.
+- **Dictionaries** (YAML): conventional routes, file roles, framework affinity.
+- **Manifests**: `package.json`, `pyproject.toml` - identity, dependencies, scripts, framework detection.
 - **Endpoints**: FastAPI/Flask decorators, Django urlpatterns, Express member-calls, Next.js App Router file layout.
 - **Data schemas**: Strapi content types (kind, names, attributes, relations).
 
 ## Supported languages
 
-- TypeScript / TSX
-- JavaScript / JSX
-- Python
+TypeScript / TSX / JavaScript / JSX / Python.
 
 ## Supported frameworks (out of the box)
 
@@ -80,31 +92,19 @@ framework. No Rust changes required for most additions.
 ## CLI
 
 ```text
-squick scan [root]                One-shot scan into .squick/context.md
+squick scan [root]                One-shot scan into .squick/
   --format markdown|json          Output format (default: markdown)
   --out PATH                      Override output path
   --dict-dir PATH                 Override dictionary directory
   --include GLOB                  Repeatable. Only scan matching paths
   --exclude GLOB                  Repeatable. Skip matching paths
-  --no-schemas                    Do not write .squick/schemas.md
+  --no-schemas                    Skip .squick/schemas.md
+  --full                          Also emit context.ndjson + graph.txt
 
 squick watch [root]               Re-scan on file save (same flags)
 squick init [root]                Create empty .squick/ directory
 squick mcp                        Start an MCP server on stdio
   --dict-dir PATH                 Override dictionary directory
-```
-
-Examples:
-
-```bash
-# Only scan TypeScript and Python sources
-squick scan --include '**/*.ts' --include '**/*.tsx' --include '**/*.py'
-
-# Exclude tests and vendored code
-squick scan --exclude 'tests/**' --exclude 'vendor/**'
-
-# Skip auxiliary schemas file
-squick scan --no-schemas
 ```
 
 ## MCP server (for AI agents)
@@ -115,20 +115,15 @@ context on demand rather than re-reading source files.
 
 Tools exposed:
 
-- `squick_scan(root)` - full project context as markdown.
-- `squick_get_endpoints(root)` - HTTP endpoints as JSON (FastAPI,
-  Flask, Django, Express, Next.js App Router).
-- `squick_get_schemas(root)` - data schemas as JSON (Strapi content
-  types and their attributes).
-- `squick_get_file_context(root, file)` - context for one file only,
-  cheaper than a full scan.
+- `squick_scan(root)` - the conventions summary (most useful default).
+- `squick_get_conventions(root)` - explicit conventions content.
+- `squick_get_schemas(root)` - data schemas as JSON.
+- `squick_get_endpoints(root)` - HTTP endpoints as JSON.
+- `squick_get_file_context(root, file)` - context for one file only.
+- `squick_get_ndjson(root)` - full project context as NDJSON.
+- `squick_get_graph(root)` - RDF-style triples for graph traversal.
 
 ### Configure Claude Code
-
-Add to your Claude Code config (`~/.claude/config.json` or equivalent).
-
-If you already ran `npm i -g @hubhorizonllc/squick` (or any other
-install channel), point the host at the binary on `PATH`:
 
 ```json
 {
@@ -141,8 +136,7 @@ install channel), point the host at the binary on `PATH`:
 }
 ```
 
-If you'd rather not install globally, use `npx` for zero-footprint
-invocation - the binary is downloaded once and cached:
+For zero-install invocation (no global package needed):
 
 ```json
 {
@@ -155,39 +149,8 @@ invocation - the binary is downloaded once and cached:
 }
 ```
 
-### Configure Cursor
-
-Add the same shape to `.cursor/mcp.json` in your project (or global
-settings):
-
-```json
-{
-  "mcpServers": {
-    "squick": {
-      "command": "squick",
-      "args": ["mcp"]
-    }
-  }
-}
-```
-
-### Configure Cline / Continue / other MCP clients
-
-Most MCP clients accept the same `command` + `args` shape. Use
-`squick` as the command (must be on `PATH`, or use the absolute path
-to the binary) and `["mcp"]` as the args. Pass `--dict-dir
-/path/to/dictionaries` if your dictionaries live outside the default
-discovery locations.
-
-### Manual smoke test
-
-Pipe JSON-RPC over stdio to verify connectivity:
-
-```bash
-(echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"smoke-test","version":"1.0"}}}'
- echo '{"jsonrpc":"2.0","method":"notifications/initialized"}'
- echo '{"jsonrpc":"2.0","id":2,"method":"tools/list"}') | squick mcp
-```
+The same shape works for Cursor (`.cursor/mcp.json`), Cline, Continue,
+and any other MCP-aware host.
 
 ## Dictionary format
 
@@ -198,11 +161,10 @@ name: frameworks/example
 description: One-line description of what this dictionary recognises.
 entries:
   - pattern: "models.py"
-    match: filename            # one of: route, component, filename,
-                               #         path-segment, symbol-name, import
-    tag: data-models           # label emitted on match
-    confidence: high           # high | medium | low
-    kind: literal              # literal | glob | regex (default: literal)
+    match: filename
+    tag: data-models
+    confidence: high
+    kind: literal
     note: "Optional context for reviewers."
 ```
 
@@ -216,7 +178,7 @@ squick/
   crates/
     squick-core/       Types, scanner, AST extraction, resolver, manifests
     squick-dict/       YAML dictionary engine
-    squick-format/     Markdown and JSON formatters
+    squick-format/     Output emitters (markdown / JSON / NDJSON / triples / conventions)
     squick-watch/      Debounced file watcher
     squick-cli/        `squick` binary
   bindings/
@@ -226,6 +188,15 @@ squick/
     vscode/            VS Code extension
   dictionaries/        YAML pattern catalogues
 ```
+
+## Built by Horizon LLC
+
+Squick is built and maintained by **Horizon LLC** - we design and build
+custom AI developer tooling, MCP integrations, and agent infrastructure
+for engineering teams.
+
+**Need custom AI tooling for your team?** Get in touch via
+[**pixelhorizon.dev**](https://pixelhorizon.dev).
 
 ## License
 

@@ -1,13 +1,15 @@
 # @hubhorizonllc/squick
 
+[![npm](https://img.shields.io/npm/v/@hubhorizonllc/squick.svg?style=flat-square&logo=npm)](https://www.npmjs.com/package/@hubhorizonllc/squick)
+
 Pre-computed, LLM-targeted code context for AI coding agents.
 
 This npm package is a thin wrapper that installs the right
 platform-specific binary via `optionalDependencies` and exposes it as
-the `squick` command. The npm name `squick` was already taken in
-2015 by an unrelated, abandoned dustjs/markdown plugin, so the
-Horizon LLC distribution lives under the org scope. On PyPI and
-crates.io the package is unscoped (`squick`) as expected.
+the `squick` command. The unscoped name `squick` was already taken
+in 2015 by an unrelated, abandoned gulp/dustjs plugin, so the
+Horizon LLC distribution lives under the `@hubhorizonllc` scope. On
+PyPI and crates.io the package is unscoped (`squick`, `squick-cli`).
 
 ## Install
 
@@ -27,8 +29,14 @@ squick watch ./your-project      # re-scan on file save
 squick mcp                       # start an MCP server on stdio
 ```
 
-See the [main project README](https://github.com/pwnaxe/squick)
-for full documentation, dictionary format, and MCP client configuration.
+A scan writes three small files into `.squick/`:
+
+- `conventions.md` - stack, libraries, layout. Attach to your AI chat.
+- `schemas.md` - data schemas and endpoints. Attach for backend questions.
+- `context.md` - tiny index pointing at the above.
+
+Add `--full` to also emit `context.ndjson` and `graph.txt` (programmatic
+formats for MCP servers and scripts).
 
 ## Supported platforms
 
@@ -39,6 +47,11 @@ for full documentation, dictionary format, and MCP client configuration.
 | macOS   | x86_64       | `@hubhorizonllc/squick-darwin-x64`       |
 | macOS   | arm64        | `@hubhorizonllc/squick-darwin-arm64`     |
 | Windows | x86_64       | `@hubhorizonllc/squick-win32-x64`        |
+
+## Built by Horizon LLC
+
+We design and build custom AI developer tooling, MCP integrations, and
+agent infrastructure for engineering teams. [pixelhorizon.dev](https://pixelhorizon.dev).
 
 ## License
 

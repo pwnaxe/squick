@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "squick"
-version = "1.2.0"
+version = "1.3.0"
 description = "Pre-computed LLM context for AI agents"
 license = { text = "Apache-2.0" }
 authors = [{ name = "Horizon LLC" }]
@@ -16,7 +16,7 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/pwnaxe/squick"
+Homepage = "https://pixelhorizon.dev"
 Repository = "https://github.com/pwnaxe/squick"
 
 [tool.maturin]
