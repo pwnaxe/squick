@@ -1,4 +1,4 @@
-// Copyright 2026 Horizon LLC
+// Copyright 2026 Hub Horizon LLC
 // SPDX-License-Identifier: Apache-2.0
 
 mod mcp;
@@ -12,7 +12,11 @@ use std::path::{Path, PathBuf};
 const DEFAULT_DICTIONARY_DIR: &str = "dictionaries";
 
 #[derive(Parser)]
-#[command(name = "squick", version, about = "Pre-computed LLM context for AI agents")]
+#[command(
+    name = "squick",
+    version,
+    about = "Pre-computed LLM context for AI agents"
+)]
 struct Cli {
     #[command(subcommand)]
     command: Command,
@@ -180,7 +184,10 @@ fn cmd_scan(
         std::fs::create_dir_all(&squick_dir)?;
 
         let conventions_path = squick_dir.join("conventions.md");
-        std::fs::write(&conventions_path, squick_format::format_conventions(&project))?;
+        std::fs::write(
+            &conventions_path,
+            squick_format::format_conventions(&project),
+        )?;
 
         let schemas_written = if !filters.no_schemas {
             if let Some(schemas) = squick_format::format_schemas(&project) {
@@ -211,8 +218,10 @@ fn cmd_scan(
 
 fn report_outputs(root: &Path, schemas_written: bool, full: bool) {
     let dir = root.join(".squick").display().to_string();
-    eprintln!("squick: wrote {}/", dir);
-    eprintln!("  conventions.md  - primary; attach to your AI chat for stack/architecture questions");
+    eprintln!("squick: wrote {dir}/");
+    eprintln!(
+        "  conventions.md  - primary; attach to your AI chat for stack/architecture questions"
+    );
     if schemas_written {
         eprintln!("  schemas.md      - attach to your AI chat for data/API questions");
     }

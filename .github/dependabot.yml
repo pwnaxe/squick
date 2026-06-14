@@ -1,0 +1,27 @@
+# Weekly dependency updates. Cargo covers the Rust workspace; the npm
+# entries track the VS Code extension and the napi-rs binding; github-actions
+# keeps the CI/release workflows current.
+version: 2
+updates:
+  - package-ecosystem: cargo
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      cargo:
+        patterns: ["*"]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: npm
+    directory: "/extensions/vscode"
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: npm
+    directory: "/bindings/node"
+    schedule:
+      interval: weekly
