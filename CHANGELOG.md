@@ -1,17 +1,46 @@
-# Changelog
+                                                                                                                            # Changelog
 
 All notable changes to this project are documented in this file. The
 format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.4.0] - 2026-06-15
+
+### Added
+
+- PHP support: Tree-sitter extraction of classes, traits, enums, methods,
+  `use` imports, and call sites.
+- `composer.json` manifest parsing with framework detection (Laravel,
+  Symfony, Slim, CakePHP, Laminas, Yii, Drupal) and platform-requirement
+  filtering (`php`, `ext-*`).
+- Endpoint detection for Laravel route facades (`Route::get`), router-object
+  routes (`$app->get`), and Symfony route attributes (`#[Route(...)]`).
+- Laravel and Symfony pattern dictionaries under
+  `dictionaries/frameworks/`.
+- ROI benchmark (`benches/roi/`) measuring the context-compression ratio.
+- CI workflow running `fmt`, `clippy`, and the test suite on Linux, macOS,
+  and Windows.
+- Supply-chain workflow: RUSTSEC advisory audit and a CycloneDX SBOM
+  artifact, plus Dependabot for Cargo, npm, and GitHub Actions.
+- End-to-end fixture tests asserting the scan-to-artifact pipeline.
+
+### Changed
+
+- Company name corrected to its full legal form, `Hub Horizon LLC`, across
+  copyright headers, manifests, and documentation.
+- `rust-version` corrected to `1.88`, the actual minimum imposed by
+  transitive dependencies (was incorrectly declared `1.80`).
+
 ## [1.3.0] - 2026-05-20
 
 ### Added
+
 - Status badges (npm, PyPI, crates.io, license) in the root README.
 - `Built by Horizon LLC` section in the README with a link to the
   company site at <https://pixelhorizon.dev>.
 
 ### Changed
+
 - README install section now describes the v1.2 three-file output
   (`conventions.md`, `schemas.md`, `context.md`) instead of the
   previous single-file model.
@@ -24,10 +53,12 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 ## [1.2.0] - 2026-05-20
 
 ### Added
+
 - `squick scan --full` flag to emit `context.ndjson` and `graph.txt`
   alongside the chat-attachable artifacts.
 
 ### Changed
+
 - `.squick/context.md` reduced to a tiny index that points at
   `conventions.md` (primary chat attachment) and `schemas.md`
   (data/API attachment).
@@ -39,6 +70,7 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 ## [1.1.0] - 2026-05-20
 
 ### Added
+
 - `context.ndjson` emitter (one JSON fact per line) for programmatic
   LLM consumers.
 - `graph.txt` emitter (subject-predicate-object triples) for graph
@@ -49,6 +81,7 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
   `squick_get_conventions`.
 
 ### Changed
+
 - `context.md` slimmed to a project-level summary plus a pointer to
   the other artifacts. Per-file symbol and JSX dumps moved out of
   the markdown view.
@@ -56,6 +89,7 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 ## [1.0.1] - 2026-05-13
 
 ### Fixed
+
 - Excluded `bindings/node` and `bindings/python` from the workspace
   so cargo-dist no longer attempts to link the PyO3 bindings on the
   macOS release runner.
@@ -65,6 +99,7 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 Initial public release.
 
 ### Added
+
 - Rust workspace with five library crates and the `squick` CLI.
 - Tree-sitter-based extractor for TypeScript, TSX, JavaScript, JSX,
   and Python.
@@ -83,6 +118,7 @@ Initial public release.
   crates.io (`squick-cli`), and prebuilt GitHub Release binaries
   (Linux x86_64/aarch64, macOS x86_64/aarch64, Windows x86_64).
 
+[1.4.0]: https://github.com/pwnaxe/squick/releases/tag/v1.4.0
 [1.3.0]: https://github.com/pwnaxe/squick/releases/tag/v1.3.0
 [1.2.0]: https://github.com/pwnaxe/squick/releases/tag/v1.2.0
 [1.1.0]: https://github.com/pwnaxe/squick/releases/tag/v1.1.0

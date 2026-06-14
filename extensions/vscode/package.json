@@ -2,10 +2,10 @@
   "name": "squick-vscode",
   "displayName": "Squick",
   "description": "Pre-computed LLM context for AI coding agents",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "publisher": "horizon-llc",
   "license": "Apache-2.0",
-  "author": "Horizon LLC",
+  "author": "Hub Horizon LLC",
   "homepage": "https://pixelhorizon.dev",
   "repository": {
     "type": "git",

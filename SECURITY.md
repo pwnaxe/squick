@@ -4,8 +4,8 @@
 
 | Version | Security fixes |
 | ------- | -------------- |
-| 1.3.x   | yes            |
-| < 1.3   | no             |
+| 1.4.x   | yes            |
+| < 1.4   | no             |
 
 Squick follows Semantic Versioning. Security fixes land on the
 current minor release and ride along with the next patch.
@@ -30,7 +30,7 @@ In scope:
 
 - The `squick` CLI and its library crates.
 - The official npm, PyPI, and crates.io packages distributed by
-  Horizon LLC.
+  Hub Horizon LLC.
 - The official GitHub Release artifacts.
 
 Out of scope:
