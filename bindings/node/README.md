@@ -16,4 +16,4 @@ npm run build
 ```
 
 Licensed under the Apache License 2.0.
-Copyright 2026 Horizon LLC.
+Copyright 2026 Hub Horizon LLC.

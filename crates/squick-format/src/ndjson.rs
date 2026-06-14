@@ -1,4 +1,4 @@
-// Copyright 2026 Horizon LLC
+// Copyright 2026 Hub Horizon LLC
 // SPDX-License-Identifier: Apache-2.0
 
 //! Newline-delimited JSON emitter. One fact per line, short keys,
@@ -7,9 +7,7 @@
 
 use serde::Serialize;
 use serde_json::json;
-use squick_core::{
-    Endpoint, FileSummary, Manifest, Project, SemanticTag, StrapiSchema, Symbol,
-};
+use squick_core::{Endpoint, FileSummary, Manifest, Project, SemanticTag, StrapiSchema, Symbol};
 use std::fmt::Write;
 
 pub fn format_ndjson(project: &Project) -> String {

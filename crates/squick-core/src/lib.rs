@@ -1,4 +1,4 @@
-// Copyright 2026 Horizon LLC
+// Copyright 2026 Hub Horizon LLC
 // SPDX-License-Identifier: Apache-2.0
 
 //! Scanner, parser, and extractor. Language-specific logic sits in
@@ -20,6 +20,6 @@ pub use language::Language;
 pub use scanner::{ScanOptions, Scanner};
 pub use types::{
     CallKind, CallSite, Comment, Confidence, Endpoint, EndpointSource, FileSummary, HttpMethod,
-    Manifest, ManifestKind, Project, Reference, SemanticTag, StrapiAttribute, StrapiSchema,
-    Symbol, SymbolKind, TagSource,
+    Manifest, ManifestKind, Project, Reference, SemanticTag, StrapiAttribute, StrapiSchema, Symbol,
+    SymbolKind, TagSource,
 };

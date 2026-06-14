@@ -1,7 +1,7 @@
 # Squick Trademark Policy
 
 "Squick", the Squick logo, and any related marks (collectively, the "Marks")
-are trademarks owned by Horizon LLC, Sharjah, United Arab Emirates.
+are trademarks owned by Hub Horizon LLC, Sharjah, United Arab Emirates.
 
 The Apache License 2.0 under which the Squick source code is distributed
 expressly does not grant any right to use the Marks. This document sets
@@ -34,5 +34,5 @@ Direct trademark licensing inquiries to <marketing@hubhorizon.tech>.
 
 ## Reservation of rights
 
-Horizon LLC reserves all rights in the Marks not expressly granted in this
+Hub Horizon LLC reserves all rights in the Marks not expressly granted in this
 policy. Nothing in this policy constitutes a waiver of any of those rights.

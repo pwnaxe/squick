@@ -1,4 +1,4 @@
-// Copyright 2026 Horizon LLC
+// Copyright 2026 Hub Horizon LLC
 // SPDX-License-Identifier: Apache-2.0
 
 //! `schemas.md` renderer: manifests, Strapi content types, and endpoints.
@@ -9,10 +9,7 @@ use std::path::Path;
 
 pub fn format_schemas(project: &Project) -> Option<String> {
     let endpoint_count: usize = project.files.iter().map(|f| f.endpoints.len()).sum();
-    if project.manifests.is_empty()
-        && project.strapi_schemas.is_empty()
-        && endpoint_count == 0
-    {
+    if project.manifests.is_empty() && project.strapi_schemas.is_empty() && endpoint_count == 0 {
         return None;
     }
 
@@ -49,10 +46,7 @@ fn render_endpoints(out: &mut String, project: &Project) {
         if file.endpoints.is_empty() {
             continue;
         }
-        let rel = file
-            .path
-            .strip_prefix(&project.root)
-            .unwrap_or(&file.path);
+        let rel = file.path.strip_prefix(&project.root).unwrap_or(&file.path);
         let _ = writeln!(out, "\n### {}", rel.display());
         for endpoint in &file.endpoints {
             render_endpoint_line(out, endpoint, rel);

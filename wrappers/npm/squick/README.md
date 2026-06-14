@@ -8,7 +8,7 @@ This npm package is a thin wrapper that installs the right
 platform-specific binary via `optionalDependencies` and exposes it as
 the `squick` command. The unscoped name `squick` was already taken
 in 2015 by an unrelated, abandoned gulp/dustjs plugin, so the
-Horizon LLC distribution lives under the `@hubhorizonllc` scope. On
+Hub Horizon LLC distribution lives under the `@hubhorizonllc` scope. On
 PyPI and crates.io the package is unscoped (`squick`, `squick-cli`).
 
 ## Install
@@ -48,12 +48,13 @@ formats for MCP servers and scripts).
 | macOS   | arm64        | `@hubhorizonllc/squick-darwin-arm64`     |
 | Windows | x86_64       | `@hubhorizonllc/squick-win32-x64`        |
 
-## Built by Horizon LLC
+## Built by Hub Horizon LLC
 
-We design and build custom AI developer tooling, MCP integrations, and
-agent infrastructure for engineering teams. [pixelhorizon.dev](https://pixelhorizon.dev).
+Squick is part of [pixelhorizon.dev](https://pixelhorizon.dev), the
+developer-tools line from Hub Horizon LLC. We design and build custom AI
+tooling, MCP integrations, and agent infrastructure for engineering teams.
 
 ## License
 
-Apache-2.0. Copyright 2026 Horizon LLC.
-"Squick" is a trademark of Horizon LLC.
+Apache-2.0. Copyright 2026 Hub Horizon LLC.
+"Squick" is a trademark of Hub Horizon LLC.

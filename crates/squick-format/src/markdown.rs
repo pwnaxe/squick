@@ -1,4 +1,4 @@
-// Copyright 2026 Horizon LLC
+// Copyright 2026 Hub Horizon LLC
 // SPDX-License-Identifier: Apache-2.0
 
 use squick_core::Project;
@@ -47,7 +47,10 @@ pub fn format_markdown(project: &Project) -> String {
          scripts that parse Squick data programmatically, not for chat attachment:\n"
     );
     let _ = writeln!(out, "- `context.ndjson` - one JSON fact per line (project, file, symbol, reference, endpoint, schema).");
-    let _ = writeln!(out, "- `graph.txt` - subject-predicate-object triples for graph traversal.");
+    let _ = writeln!(
+        out,
+        "- `graph.txt` - subject-predicate-object triples for graph traversal."
+    );
 
     out
 }

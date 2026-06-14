@@ -1,4 +1,4 @@
-// Copyright 2026 Horizon LLC
+// Copyright 2026 Hub Horizon LLC
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::types::{Dictionary, Entry, MatchKind, PatternKind};
@@ -156,7 +156,12 @@ mod tests {
 
     #[test]
     fn literal_match_is_case_insensitive() {
-        let dict = make_dict("Models.py", PatternKind::Literal, MatchKind::Filename, "models");
+        let dict = make_dict(
+            "Models.py",
+            PatternKind::Literal,
+            MatchKind::Filename,
+            "models",
+        );
         let matcher = Matcher::from_dictionaries([dict]);
         let tags = matcher.match_value(MatchKind::Filename, "models.py");
         assert_eq!(tags.len(), 1);
@@ -165,14 +170,23 @@ mod tests {
 
     #[test]
     fn glob_match_anchored() {
-        let dict = make_dict("*.test.ts", PatternKind::Glob, MatchKind::Filename, "unit-test");
+        let dict = make_dict(
+            "*.test.ts",
+            PatternKind::Glob,
+            MatchKind::Filename,
+            "unit-test",
+        );
         let matcher = Matcher::from_dictionaries([dict]);
         assert_eq!(
-            matcher.match_value(MatchKind::Filename, "foo.test.ts").len(),
+            matcher
+                .match_value(MatchKind::Filename, "foo.test.ts")
+                .len(),
             1
         );
         assert_eq!(
-            matcher.match_value(MatchKind::Filename, "foo.test.tsx").len(),
+            matcher
+                .match_value(MatchKind::Filename, "foo.test.tsx")
+                .len(),
             0
         );
     }
@@ -186,13 +200,21 @@ mod tests {
             "react-hook",
         );
         let matcher = Matcher::from_dictionaries([dict]);
-        assert_eq!(matcher.match_value(MatchKind::SymbolName, "useState").len(), 1);
+        assert_eq!(
+            matcher.match_value(MatchKind::SymbolName, "useState").len(),
+            1
+        );
         assert_eq!(matcher.match_value(MatchKind::SymbolName, "user").len(), 0);
     }
 
     #[test]
     fn surface_isolation() {
-        let dict = make_dict("react", PatternKind::Literal, MatchKind::Import, "framework-react");
+        let dict = make_dict(
+            "react",
+            PatternKind::Literal,
+            MatchKind::Import,
+            "framework-react",
+        );
         let matcher = Matcher::from_dictionaries([dict]);
         assert_eq!(matcher.match_value(MatchKind::Import, "react").len(), 1);
         assert_eq!(matcher.match_value(MatchKind::Filename, "react").len(), 0);

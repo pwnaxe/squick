@@ -16,8 +16,10 @@ Pre-computed LLM context for AI agents inside VS Code.
 Skeleton stage. Activates and registers commands; scanner integration is in
 progress.
 
-## Built by Horizon LLC
+## Built by Hub Horizon LLC
 
-Custom AI developer tooling for engineering teams. [pixelhorizon.dev](https://pixelhorizon.dev).
+Squick is part of [pixelhorizon.dev](https://pixelhorizon.dev), the
+developer-tools line from Hub Horizon LLC. Custom AI tooling for
+engineering teams.
 
-Licensed under the Apache License 2.0. Copyright 2026 Horizon LLC.
+Licensed under the Apache License 2.0. Copyright 2026 Hub Horizon LLC.

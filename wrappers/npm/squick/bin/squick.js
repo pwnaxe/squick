@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Copyright 2026 Horizon LLC
+// Copyright 2026 Hub Horizon LLC
 // SPDX-License-Identifier: Apache-2.0
 //
 // Locates the platform-specific Squick binary installed via

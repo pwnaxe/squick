@@ -50,5 +50,5 @@ full documentation, dictionary format, and MCP client configuration.
 
 ## License
 
-Apache-2.0. Copyright 2026 Horizon LLC.
-"Squick" is a trademark of Horizon LLC.
+Apache-2.0. Copyright 2026 Hub Horizon LLC.
+"Squick" is a trademark of Hub Horizon LLC.

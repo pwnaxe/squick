@@ -1,4 +1,4 @@
-// Copyright 2026 Horizon LLC
+// Copyright 2026 Hub Horizon LLC
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::error::{Error, Result};
@@ -41,7 +41,12 @@ impl FileParser {
             call_sites: Vec::new(),
         };
 
-        extract::extract(self.language, tree.root_node(), source.as_bytes(), &mut summary);
+        extract::extract(
+            self.language,
+            tree.root_node(),
+            source.as_bytes(),
+            &mut summary,
+        );
 
         for sym in summary.symbols.iter_mut() {
             sym.file = path.to_path_buf();

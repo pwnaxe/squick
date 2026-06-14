@@ -1,4 +1,4 @@
-// Copyright 2026 Horizon LLC
+// Copyright 2026 Hub Horizon LLC
 // SPDX-License-Identifier: Apache-2.0
 
 //! MCP server (stdio transport) backed by `rmcp`. Exposes four tools:
@@ -9,8 +9,8 @@ use anyhow::Result;
 use rmcp::{
     handler::server::{router::tool::ToolRouter, wrapper::Parameters},
     model::{
-        CallToolResult, Content, ErrorData, Implementation, ProtocolVersion,
-        ServerCapabilities, ServerInfo,
+        CallToolResult, Content, ErrorData, Implementation, ProtocolVersion, ServerCapabilities,
+        ServerInfo,
     },
     schemars,
     service::ServiceExt,
@@ -171,10 +171,7 @@ impl SquickServer {
             .iter()
             .find(|f| paths_match(&f.path, &target))
             .ok_or_else(|| {
-                ErrorData::invalid_params(
-                    format!("file `{}` not found in scan", args.file),
-                    None,
-                )
+                ErrorData::invalid_params(format!("file `{}` not found in scan", args.file), None)
             })?;
         let single = Project {
             root: project.root.clone(),
@@ -203,9 +200,8 @@ impl SquickServer {
         if !path.exists() {
             return Ok(());
         }
-        let dicts = load_directory(path).map_err(|e| {
-            ErrorData::internal_error(format!("loading dictionaries: {e}"), None)
-        })?;
+        let dicts = load_directory(path)
+            .map_err(|e| ErrorData::internal_error(format!("loading dictionaries: {e}"), None))?;
         if !dicts.is_empty() {
             Matcher::from_dictionaries(dicts).apply(project);
         }

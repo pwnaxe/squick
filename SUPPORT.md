@@ -15,13 +15,13 @@ maintainers.
 ## Commercial support
 
 For private support, integration work, custom dictionary development,
-on-prem deployment guidance, or SLAs, contact Horizon LLC:
+on-prem deployment guidance, or SLAs, contact Hub Horizon LLC:
 
 - Email: <marketing@hubhorizon.tech>
 - Web: <https://pixelhorizon.dev>
 
-Horizon LLC also offers custom AI developer tooling, MCP integrations,
-and agent infrastructure work for engineering teams.
+Hub Horizon LLC also takes on developer tooling and MCP server work for
+teams building with AI coding agents.
 
 ## Security issues
 

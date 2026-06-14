@@ -1,13 +1,11 @@
-// Copyright 2026 Horizon LLC
+// Copyright 2026 Hub Horizon LLC
 // SPDX-License-Identifier: Apache-2.0
 
 //! RDF-style triple emitter (subject predicate object, one per line).
 //! Compact graph representation. No quoting, no nesting; identifiers
 //! use short URI-like prefixes (`file:`, `sym:`, `schema:`, `ep:`).
 
-use squick_core::{
-    Endpoint, FileSummary, Manifest, Project, StrapiSchema, Symbol,
-};
+use squick_core::{Endpoint, FileSummary, Manifest, Project, StrapiSchema, Symbol};
 use std::fmt::Write;
 
 pub fn format_triples(project: &Project) -> String {
@@ -107,7 +105,11 @@ fn symbol_triples(out: &mut String, file: &FileSummary, symbol: &Symbol, root: &
     let sym_id = format!("sym:{path}#{}", symbol.name);
     let _ = writeln!(out, "{sym_id} type symbol");
     let _ = writeln!(out, "{file_id} defines {sym_id}");
-    let _ = writeln!(out, "{sym_id} kind {}", format_kind(&format!("{:?}", symbol.kind)));
+    let _ = writeln!(
+        out,
+        "{sym_id} kind {}",
+        format_kind(&format!("{:?}", symbol.kind))
+    );
     let _ = writeln!(out, "{sym_id} line {}", symbol.line);
     if let Some(doc) = &symbol.doc_comment {
         let one_line = doc.replace('\n', " ");
