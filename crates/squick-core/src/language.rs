@@ -1,4 +1,4 @@
-// Copyright 2026 Horizon LLC
+// Copyright 2026 Hub Horizon LLC
 // SPDX-License-Identifier: Apache-2.0
 
 use std::path::Path;
@@ -11,6 +11,7 @@ pub enum Language {
     JavaScript,
     Jsx,
     Python,
+    Php,
 }
 
 impl Language {
@@ -22,6 +23,7 @@ impl Language {
             "js" | "mjs" | "cjs" => Language::JavaScript,
             "jsx" => Language::Jsx,
             "py" | "pyi" => Language::Python,
+            "php" | "php3" | "php4" | "php5" | "phtml" => Language::Php,
             _ => return None,
         })
     }
@@ -33,6 +35,7 @@ impl Language {
             Language::JavaScript => "javascript",
             Language::Jsx => "jsx",
             Language::Python => "python",
+            Language::Php => "php",
         }
     }
 
@@ -42,6 +45,7 @@ impl Language {
             Language::Tsx => tree_sitter_typescript::language_tsx(),
             Language::JavaScript | Language::Jsx => tree_sitter_javascript::language(),
             Language::Python => tree_sitter_python::language(),
+            Language::Php => tree_sitter_php::language_php(),
         }
     }
 }
@@ -72,6 +76,14 @@ mod tests {
         assert_eq!(
             Language::from_path(&PathBuf::from("foo.py")),
             Some(Language::Python)
+        );
+        assert_eq!(
+            Language::from_path(&PathBuf::from("foo.php")),
+            Some(Language::Php)
+        );
+        assert_eq!(
+            Language::from_path(&PathBuf::from("index.PHTML")),
+            Some(Language::Php)
         );
     }
 

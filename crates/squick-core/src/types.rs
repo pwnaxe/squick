@@ -1,4 +1,4 @@
-// Copyright 2026 Horizon LLC
+// Copyright 2026 Hub Horizon LLC
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::language::Language;
@@ -24,6 +24,8 @@ pub enum SymbolKind {
     Class,
     Struct,
     Interface,
+    Trait,
+    Enum,
     TypeAlias,
     Variable,
     Constant,
@@ -136,6 +138,8 @@ pub enum EndpointSource {
     PythonUrlpatterns,
     JsMethodCall,
     NextjsRouteHandler,
+    PhpRoute,
+    PhpAttributeRoute,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -174,6 +178,7 @@ pub struct FileSummary {
 pub enum ManifestKind {
     NodePackage,
     PythonProject,
+    PhpComposer,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -1,5 +1,6 @@
 # Squick
 
+[![CI](https://github.com/pwnaxe/squick/actions/workflows/ci.yml/badge.svg)](https://github.com/pwnaxe/squick/actions/workflows/ci.yml)
 [![crates.io](https://img.shields.io/crates/v/squick-cli.svg?style=flat-square&logo=rust)](https://crates.io/crates/squick-cli)
 [![npm](https://img.shields.io/npm/v/@hubhorizonllc/squick.svg?style=flat-square&logo=npm)](https://www.npmjs.com/package/@hubhorizonllc/squick)
 [![PyPI](https://img.shields.io/pypi/v/squick.svg?style=flat-square&logo=pypi)](https://pypi.org/project/squick/)
@@ -15,14 +16,39 @@ prompt.
 
 ## Why
 
-AI coding agents currently spend tokens "looking around" the repository
-before answering even simple questions. Squick inverts that cost: do
-the analysis once at file save, save tokens on every prompt thereafter.
+Every prompt to an AI coding agent starts the same way: the agent reads
+through the repository to work out how it is laid out, then answers. That
+exploration costs tokens and time on every prompt, including trivial ones.
+
+Squick does the analysis once, on save, and writes the result to disk. The
+agent reads that instead of re-deriving the project structure each turn.
+
+## Measured impact
+
+On a production Next.js + Python monorepo (845 source files), the structural
+corpus an agent reads to orient itself shrinks from ~1.85M tokens to ~4.7K:
+
+| Layer | Source files | Source tokens | Squick tokens | Reduction |
+| ----- | -----------: | ------------: | ------------: | --------: |
+| Next.js frontend | 708 | 1,813,309 | 927 | 99.9% |
+| Python backend | 137 | 40,748 | 3,800 | 90.7% |
+| **Combined** | **845** | **1,854,057** | **4,727** | **99.7%** |
+
+That is the recurring orientation tax Squick removes, paid on every prompt
+otherwise. The benefit scales with repository size. Reproduce these numbers
+on your own repo:
+
+```bash
+cargo build -p squick-cli
+python benches/roi/measure.py /path/to/your/repo
+```
+
+Methodology and reference data: [benches/roi/](benches/roi/).
 
 ## Install
 
 ```bash
-# npm (recommended for AI-agent users - works with `npx -y` too)
+# npm (recommended for AI-agent users; works with `npx -y` too)
 npm i -g @hubhorizonllc/squick
 
 # PyPI
@@ -49,13 +75,13 @@ squick scan ./your-project
 
 Writes a small set of artifacts to `.squick/`:
 
-- **`conventions.md`** - detected stack, library choices, repository
+- **`conventions.md`**: detected stack, library choices, repository
   layout, API surface. **Attach this to your AI chat** when asking
   about architecture or library usage.
-- **`schemas.md`** - extracted data schemas (Strapi content types) and
+- **`schemas.md`**: extracted data schemas (Strapi content types) and
   HTTP endpoints. **Attach this to your AI chat** for backend, data,
   or API questions.
-- `context.md` - tiny index pointing at the two files above.
+- `context.md`: tiny index pointing at the two files above.
 
 For programmatic consumers (MCP servers, scripts) add `--full`:
 
@@ -71,18 +97,19 @@ This additionally writes `context.ndjson` (one JSON fact per line) and
 - **Structure** (Tree-sitter): symbols, imports, JSX components, doc comments, references.
 - **Heuristics**: function-name verbs, suffixes, Python dunders, framework markers.
 - **Dictionaries** (YAML): conventional routes, file roles, framework affinity.
-- **Manifests**: `package.json`, `pyproject.toml` - identity, dependencies, scripts, framework detection.
-- **Endpoints**: FastAPI/Flask decorators, Django urlpatterns, Express member-calls, Next.js App Router file layout.
+- **Manifests**: `package.json`, `pyproject.toml`, `composer.json` (identity, dependencies, scripts, framework detection).
+- **Endpoints**: FastAPI/Flask decorators, Django urlpatterns, Express member-calls, Next.js App Router file layout, Laravel route facades, Symfony route attributes.
 - **Data schemas**: Strapi content types (kind, names, attributes, relations).
 
 ## Supported languages
 
-TypeScript / TSX / JavaScript / JSX / Python.
+TypeScript / TSX / JavaScript / JSX / Python / PHP.
 
 ## Supported frameworks (out of the box)
 
 Backend: Strapi, Django, Django REST Framework, FastAPI, Flask, Express,
-Koa, Fastify, NestJS, Sanity, Payload CMS, WordPress (file roles).
+Koa, Fastify, NestJS, Sanity, Payload CMS, WordPress (file roles), Laravel,
+Symfony.
 
 Frontend: Next.js (App Router + Pages Router), React, Tailwind.
 
@@ -115,13 +142,13 @@ context on demand rather than re-reading source files.
 
 Tools exposed:
 
-- `squick_scan(root)` - the conventions summary (most useful default).
-- `squick_get_conventions(root)` - explicit conventions content.
-- `squick_get_schemas(root)` - data schemas as JSON.
-- `squick_get_endpoints(root)` - HTTP endpoints as JSON.
-- `squick_get_file_context(root, file)` - context for one file only.
-- `squick_get_ndjson(root)` - full project context as NDJSON.
-- `squick_get_graph(root)` - RDF-style triples for graph traversal.
+- `squick_scan(root)`: the conventions summary (most useful default).
+- `squick_get_conventions(root)`: explicit conventions content.
+- `squick_get_schemas(root)`: data schemas as JSON.
+- `squick_get_endpoints(root)`: HTTP endpoints as JSON.
+- `squick_get_file_context(root, file)`: context for one file only.
+- `squick_get_ndjson(root)`: full project context as NDJSON.
+- `squick_get_graph(root)`: RDF-style triples for graph traversal.
 
 ### Configure Claude Code
 
@@ -189,23 +216,23 @@ squick/
   dictionaries/        YAML pattern catalogues
 ```
 
-## Built by Horizon LLC
+## Built by Hub Horizon LLC
 
-Squick is built and maintained by **Horizon LLC** - we design and build
-custom AI developer tooling, MCP integrations, and agent infrastructure
-for engineering teams.
+Squick is part of [**pixelhorizon.dev**](https://pixelhorizon.dev), the
+developer-tools line from **Hub Horizon LLC**. We build tooling and MCP
+servers for teams that work with AI coding agents.
 
-**Need custom AI tooling for your team?** Get in touch via
+Need something similar for your stack? Reach us at
 [**pixelhorizon.dev**](https://pixelhorizon.dev).
 
 ## License
 
 Squick is distributed under the [Apache License 2.0](LICENSE).
-Copyright 2026 Horizon LLC, Sharjah, United Arab Emirates.
+Copyright 2026 Hub Horizon LLC, Sharjah, United Arab Emirates.
 
 ## Trademarks
 
-"Squick" and the Squick logo are trademarks of Horizon LLC. The Apache
+"Squick" and the Squick logo are trademarks of Hub Horizon LLC. The Apache
 License 2.0 grants no rights in the trademarks. See [TRADEMARKS.md](TRADEMARKS.md).
 
 ## Contributing

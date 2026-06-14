@@ -1,4 +1,4 @@
-// Copyright 2026 Horizon LLC
+// Copyright 2026 Hub Horizon LLC
 // SPDX-License-Identifier: Apache-2.0
 
 //! Recursive walker that turns a Tree-sitter tree into a `FileSummary`.
@@ -64,7 +64,8 @@ fn walk(ctx: &mut Ctx<'_>, node: Node<'_>, out: &mut FileSummary) {
         }
         "method_definition" | "method_signature" => {
             if let Some(name) = field_text(node, "name", ctx.source) {
-                out.symbols.push(make_symbol(name, SymbolKind::Method, node));
+                out.symbols
+                    .push(make_symbol(name, SymbolKind::Method, node));
             }
         }
 
@@ -80,12 +81,14 @@ fn walk(ctx: &mut Ctx<'_>, node: Node<'_>, out: &mut FileSummary) {
         }
         "interface_declaration" => {
             if let Some(name) = field_text(node, "name", ctx.source) {
-                out.symbols.push(make_symbol(name, SymbolKind::Interface, node));
+                out.symbols
+                    .push(make_symbol(name, SymbolKind::Interface, node));
             }
         }
         "type_alias_declaration" => {
             if let Some(name) = field_text(node, "name", ctx.source) {
-                out.symbols.push(make_symbol(name, SymbolKind::TypeAlias, node));
+                out.symbols
+                    .push(make_symbol(name, SymbolKind::TypeAlias, node));
             }
         }
 
@@ -175,6 +178,67 @@ fn walk(ctx: &mut Ctx<'_>, node: Node<'_>, out: &mut FileSummary) {
             return;
         }
 
+        "method_declaration" if ctx.language == Language::Php => {
+            if let Some(name) = field_text(node, "name", ctx.source) {
+                out.symbols
+                    .push(make_symbol(name.clone(), SymbolKind::Method, node));
+                extract_php_attribute_routes(node, ctx.source, Some(name), out);
+            }
+        }
+        "trait_declaration" if ctx.language == Language::Php => {
+            if let Some(name) = field_text(node, "name", ctx.source) {
+                out.symbols.push(make_symbol(name, SymbolKind::Trait, node));
+            }
+            let was_in_class = ctx.in_class;
+            ctx.in_class = true;
+            recurse(ctx, node, out);
+            ctx.in_class = was_in_class;
+            return;
+        }
+        "enum_declaration" if ctx.language == Language::Php => {
+            if let Some(name) = field_text(node, "name", ctx.source) {
+                out.symbols.push(make_symbol(name, SymbolKind::Enum, node));
+            }
+            let was_in_class = ctx.in_class;
+            ctx.in_class = true;
+            recurse(ctx, node, out);
+            ctx.in_class = was_in_class;
+            return;
+        }
+        "namespace_use_declaration" if ctx.language == Language::Php => {
+            collect_php_use_imports(node, ctx.source, out);
+        }
+        "scoped_call_expression" if ctx.language == Language::Php => {
+            if let Some(ep) = extract_php_scoped_route(node, ctx.source) {
+                out.endpoints.push(ep);
+            }
+        }
+        "member_call_expression" if ctx.language == Language::Php => {
+            if let Some(ep) = extract_php_member_route(node, ctx.source) {
+                out.endpoints.push(ep);
+            }
+        }
+        "function_call_expression" if ctx.language == Language::Php => {
+            if let Some(func) = node.child_by_field_name("function") {
+                if func.kind() == "name" {
+                    out.call_sites.push(CallSite {
+                        name: text(func, ctx.source).to_string(),
+                        line: func.start_position().row + 1,
+                        kind: CallKind::Call,
+                    });
+                }
+            }
+        }
+        "object_creation_expression" if ctx.language == Language::Php => {
+            if let Some(name) = php_new_class_name(node, ctx.source) {
+                out.call_sites.push(CallSite {
+                    name,
+                    line: node.start_position().row + 1,
+                    kind: CallKind::New,
+                });
+            }
+        }
+
         _ => {}
     }
 
@@ -223,13 +287,14 @@ fn make_comment(node: Node<'_>, source: &[u8]) -> Option<Comment> {
 
 fn extract_import_specifier(language: Language, node: Node<'_>, source: &[u8]) -> Option<String> {
     match language {
-        Language::Python => node
-            .named_child(0)
-            .map(|c| text(c, source).to_string()),
+        Language::Python => node.named_child(0).map(|c| text(c, source).to_string()),
         _ => {
             let s = node.child_by_field_name("source")?;
             let raw = text(s, source);
-            Some(raw.trim_matches(|c| c == '"' || c == '\'' || c == '`').to_string())
+            Some(
+                raw.trim_matches(|c| c == '"' || c == '\'' || c == '`')
+                    .to_string(),
+            )
         }
     }
 }
@@ -329,7 +394,7 @@ fn is_free_callee(node: Node<'_>) -> bool {
 
 fn string_literal_value(node: Node<'_>, source: &[u8]) -> Option<String> {
     match node.kind() {
-        "string" => {
+        "string" | "encapsed_string" => {
             let mut cursor = node.walk();
             for child in node.children(&mut cursor) {
                 let kind = child.kind();
@@ -413,9 +478,7 @@ fn detect_nextjs_route_handlers(out: &mut FileSummary) {
     let candidates: Vec<(HttpMethod, String, usize)> = out
         .symbols
         .iter()
-        .filter_map(|s| {
-            nextjs_method_from_name(&s.name).map(|m| (m, s.name.clone(), s.line))
-        })
+        .filter_map(|s| nextjs_method_from_name(&s.name).map(|m| (m, s.name.clone(), s.line)))
         .collect();
     for (method, handler, line) in candidates {
         out.endpoints.push(Endpoint {
@@ -445,7 +508,10 @@ fn nextjs_method_from_name(name: &str) -> Option<HttpMethod> {
 fn nextjs_route_path(path: &std::path::Path) -> Option<String> {
     let normalized = path.to_string_lossy().replace('\\', "/");
     let after_app = normalized.rfind("/app/").map(|i| &normalized[i + 5..])?;
-    let directory = after_app.rsplit_once('/').map(|(prefix, _)| prefix).unwrap_or("");
+    let directory = after_app
+        .rsplit_once('/')
+        .map(|(prefix, _)| prefix)
+        .unwrap_or("");
     let segments: Vec<String> = directory
         .split('/')
         .filter(|seg| !seg.is_empty())
@@ -460,10 +526,7 @@ fn nextjs_route_path(path: &std::path::Path) -> Option<String> {
 }
 
 fn translate_nextjs_segment(segment: &str) -> String {
-    if let Some(inner) = segment
-        .strip_prefix('[')
-        .and_then(|s| s.strip_suffix(']'))
-    {
+    if let Some(inner) = segment.strip_prefix('[').and_then(|s| s.strip_suffix(']')) {
         if let Some(rest) = inner.strip_prefix("...") {
             return format!("*{rest}");
         }
@@ -484,99 +547,7 @@ fn normalize_django_path(raw: &str) -> String {
 
 // Heuristic for Django `re_path` arguments vs ordinary paths.
 fn is_regex_path(raw: &str) -> bool {
-    raw.starts_with('^')
-        || raw.contains("\\d")
-        || raw.contains("\\w")
-        || raw.contains("(?P<")
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::path::PathBuf;
-
-    #[test]
-    fn nextjs_route_path_simple() {
-        let p = PathBuf::from("frontend/src/app/api/blogs/route.ts");
-        assert_eq!(nextjs_route_path(&p), Some("/api/blogs".to_string()));
-    }
-
-    #[test]
-    fn nextjs_route_path_dynamic_segment() {
-        let p = PathBuf::from("frontend/src/app/api/users/[id]/route.ts");
-        assert_eq!(nextjs_route_path(&p), Some("/api/users/:id".to_string()));
-    }
-
-    #[test]
-    fn nextjs_route_path_catchall() {
-        let p = PathBuf::from("frontend/src/app/data/[...slug]/route.ts");
-        assert_eq!(nextjs_route_path(&p), Some("/data/*slug".to_string()));
-    }
-
-    #[test]
-    fn nextjs_route_path_drops_route_group() {
-        let p = PathBuf::from("src/app/(marketing)/about/route.ts");
-        assert_eq!(nextjs_route_path(&p), Some("/about".to_string()));
-    }
-
-    #[test]
-    fn nextjs_route_path_root() {
-        let p = PathBuf::from("src/app/route.ts");
-        assert_eq!(nextjs_route_path(&p), Some("/".to_string()));
-    }
-
-    #[test]
-    fn nextjs_route_path_normalises_backslashes() {
-        let p = PathBuf::from(r"src\app\api\users\route.ts");
-        assert_eq!(nextjs_route_path(&p), Some("/api/users".to_string()));
-    }
-
-    #[test]
-    fn nextjs_route_path_rejects_non_app_router() {
-        let p = PathBuf::from("src/pages/api/users.ts");
-        assert_eq!(nextjs_route_path(&p), None);
-    }
-
-    #[test]
-    fn django_path_normalisation() {
-        assert_eq!(normalize_django_path(""), "/");
-        assert_eq!(normalize_django_path("about/"), "/about/");
-        assert_eq!(normalize_django_path("/already-slashed"), "/already-slashed");
-    }
-
-    #[test]
-    fn django_regex_paths_are_preserved() {
-        let regex = r"^api/posts/(?P<slug>[\w-]+)/$";
-        assert_eq!(normalize_django_path(regex), regex);
-        assert!(is_regex_path(regex));
-    }
-
-    #[test]
-    fn jsx_filter_keeps_components_and_semantic_tags() {
-        assert!(is_jsx_tag_worth_keeping("Navbar"));
-        assert!(is_jsx_tag_worth_keeping("MyComponent"));
-        assert!(is_jsx_tag_worth_keeping("nav"));
-        assert!(is_jsx_tag_worth_keeping("header"));
-        assert!(is_jsx_tag_worth_keeping("main"));
-    }
-
-    #[test]
-    fn jsx_filter_drops_generic_html() {
-        assert!(!is_jsx_tag_worth_keeping("div"));
-        assert!(!is_jsx_tag_worth_keeping("span"));
-        assert!(!is_jsx_tag_worth_keeping("p"));
-        assert!(!is_jsx_tag_worth_keeping("button"));
-        assert!(!is_jsx_tag_worth_keeping("h1"));
-    }
-
-    #[test]
-    fn nextjs_method_requires_uppercase_only() {
-        assert_eq!(nextjs_method_from_name("GET"), Some(HttpMethod::Get));
-        assert_eq!(nextjs_method_from_name("POST"), Some(HttpMethod::Post));
-        assert_eq!(nextjs_method_from_name("Get"), None);
-        assert_eq!(nextjs_method_from_name("get"), None);
-        assert_eq!(nextjs_method_from_name("HANDLER"), None);
-    }
+    raw.starts_with('^') || raw.contains("\\d") || raw.contains("\\w") || raw.contains("(?P<")
 }
 
 // FastAPI / Flask / NestJS-Py decorators: `@app.get("/x")`, `@router.post(...)`.
@@ -642,4 +613,494 @@ fn parse_python_route_call(call: Node<'_>, source: &[u8]) -> Option<(HttpMethod,
 
 fn rightmost_segment(name: &str) -> String {
     name.rsplit('.').next().unwrap_or(name).to_string()
+}
+
+// ---- PHP ----------------------------------------------------------------
+
+// `use App\Models\User;` / `use Foo\Bar as Baz;`. Stores the fully
+// qualified name so dictionaries can match on namespace prefixes.
+fn collect_php_use_imports(node: Node<'_>, source: &[u8], out: &mut FileSummary) {
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        if child.kind() != "namespace_use_clause" {
+            continue;
+        }
+        if let Some(path) = php_use_clause_path(child, source) {
+            out.imports.push(path);
+        }
+    }
+}
+
+fn php_use_clause_path(clause: Node<'_>, source: &[u8]) -> Option<String> {
+    let first = clause.named_child(0)?;
+    match first.kind() {
+        "qualified_name" | "name" => Some(text(first, source).to_string()),
+        _ => None,
+    }
+}
+
+fn php_new_class_name(node: Node<'_>, source: &[u8]) -> Option<String> {
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        if matches!(child.kind(), "name" | "qualified_name") {
+            return Some(php_rightmost(text(child, source)));
+        }
+    }
+    None
+}
+
+fn php_rightmost(name: &str) -> String {
+    name.rsplit('\\').next().unwrap_or(name).to_string()
+}
+
+// Laravel / Slim facade routes: `Route::get('/users', [Ctrl::class, 'show'])`.
+fn extract_php_scoped_route(node: Node<'_>, source: &[u8]) -> Option<Endpoint> {
+    let scope = node.child_by_field_name("scope")?;
+    if !matches!(text(scope, source), "Route" | "Router") {
+        return None;
+    }
+    let name = node.child_by_field_name("name")?;
+    let method = HttpMethod::from_token(text(name, source))?;
+    let args = node.child_by_field_name("arguments")?;
+    let raw = php_positional_arg(args, 0).and_then(|n| string_literal_value(n, source))?;
+    let handler = php_positional_arg(args, 1).and_then(|n| php_route_handler(n, source));
+    Some(Endpoint {
+        method,
+        path: normalize_php_path(&raw),
+        handler,
+        line: node.start_position().row + 1,
+        source: EndpointSource::PhpRoute,
+    })
+}
+
+// Router-object routes: `$app->get('/ping', fn () => ...)`. Gated on a
+// leading slash so ordinary method calls like `$bag->get('key')` are
+// not mistaken for endpoints.
+fn extract_php_member_route(node: Node<'_>, source: &[u8]) -> Option<Endpoint> {
+    let name = node.child_by_field_name("name")?;
+    let method = HttpMethod::from_token(text(name, source))?;
+    let args = node.child_by_field_name("arguments")?;
+    let raw = php_positional_arg(args, 0).and_then(|n| string_literal_value(n, source))?;
+    if !raw.starts_with('/') {
+        return None;
+    }
+    let handler = php_positional_arg(args, 1).and_then(|n| php_route_handler(n, source));
+    Some(Endpoint {
+        method,
+        path: normalize_php_path(&raw),
+        handler,
+        line: node.start_position().row + 1,
+        source: EndpointSource::PhpRoute,
+    })
+}
+
+// Symfony attribute routes on a controller action:
+// `#[Route('/users/{id}', methods: ['GET'])]`.
+fn extract_php_attribute_routes(
+    node: Node<'_>,
+    source: &[u8],
+    handler: Option<String>,
+    out: &mut FileSummary,
+) {
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        if child.kind() != "attribute_list" {
+            continue;
+        }
+        let mut group_cursor = child.walk();
+        for group in child.children(&mut group_cursor) {
+            if group.kind() != "attribute_group" {
+                continue;
+            }
+            let mut attr_cursor = group.walk();
+            for attr in group.children(&mut attr_cursor) {
+                if attr.kind() == "attribute" {
+                    push_php_attribute_route(attr, source, &handler, out);
+                }
+            }
+        }
+    }
+}
+
+fn push_php_attribute_route(
+    attr: Node<'_>,
+    source: &[u8],
+    handler: &Option<String>,
+    out: &mut FileSummary,
+) {
+    let name = attr
+        .named_child(0)
+        .filter(|n| matches!(n.kind(), "name" | "qualified_name"));
+    let Some(name) = name else { return };
+    if php_rightmost(text(name, source)) != "Route" {
+        return;
+    }
+    let Some(args) = attr.child_by_field_name("parameters") else {
+        return;
+    };
+    let raw = php_positional_arg(args, 0)
+        .or_else(|| php_named_arg(args, "path", source))
+        .and_then(|n| string_literal_value(n, source));
+    let Some(raw) = raw else { return };
+    let path = normalize_php_path(&raw);
+
+    let methods = php_named_arg(args, "methods", source)
+        .map(|n| php_string_array(n, source))
+        .filter(|m| !m.is_empty())
+        .unwrap_or_else(|| vec![HttpMethod::Any]);
+
+    for method in methods {
+        out.endpoints.push(Endpoint {
+            method,
+            path: path.clone(),
+            handler: handler.clone(),
+            line: attr.start_position().row + 1,
+            source: EndpointSource::PhpAttributeRoute,
+        });
+    }
+}
+
+// Handler from a Laravel route action: a `'Ctrl@method'` string or a
+// `[Ctrl::class, 'method']` array.
+fn php_route_handler(value: Node<'_>, source: &[u8]) -> Option<String> {
+    match value.kind() {
+        "string" | "encapsed_string" => string_literal_value(value, source),
+        "array_creation_expression" => {
+            let mut elements = Vec::new();
+            let mut cursor = value.walk();
+            for child in value.children(&mut cursor) {
+                if child.kind() == "array_element_initializer" {
+                    elements.push(child);
+                }
+            }
+            let class = elements
+                .first()
+                .and_then(|e| e.named_child(0))
+                .filter(|n| n.kind() == "class_constant_access_expression")
+                .and_then(|n| n.named_child(0))
+                .map(|n| php_rightmost(text(n, source)));
+            let method = elements
+                .get(1)
+                .and_then(|e| e.named_child(0))
+                .and_then(|n| string_literal_value(n, source));
+            match (class, method) {
+                (Some(c), Some(m)) => Some(format!("{c}@{m}")),
+                (Some(c), None) => Some(c),
+                _ => None,
+            }
+        }
+        _ => None,
+    }
+}
+
+// nth positional (unnamed) argument value inside an `arguments` node.
+fn php_positional_arg(args: Node<'_>, index: usize) -> Option<Node<'_>> {
+    let mut seen = 0;
+    let mut cursor = args.walk();
+    for child in args.children(&mut cursor) {
+        if child.kind() != "argument" {
+            continue;
+        }
+        if child.child_by_field_name("name").is_some() {
+            continue;
+        }
+        if seen == index {
+            return php_argument_value(child);
+        }
+        seen += 1;
+    }
+    None
+}
+
+fn php_named_arg<'tree>(args: Node<'tree>, name: &str, source: &[u8]) -> Option<Node<'tree>> {
+    let mut cursor = args.walk();
+    for child in args.children(&mut cursor) {
+        if child.kind() != "argument" {
+            continue;
+        }
+        if let Some(label) = child.child_by_field_name("name") {
+            if text(label, source) == name {
+                return php_argument_value(child);
+            }
+        }
+    }
+    None
+}
+
+fn php_argument_value(argument: Node<'_>) -> Option<Node<'_>> {
+    let count = argument.named_child_count();
+    if count == 0 {
+        return None;
+    }
+    argument.named_child(count - 1)
+}
+
+fn php_string_array(node: Node<'_>, source: &[u8]) -> Vec<HttpMethod> {
+    let mut methods = Vec::new();
+    if node.kind() != "array_creation_expression" {
+        return methods;
+    }
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        if child.kind() != "array_element_initializer" {
+            continue;
+        }
+        if let Some(token) = child
+            .named_child(0)
+            .and_then(|n| string_literal_value(n, source))
+        {
+            if let Some(method) = HttpMethod::from_token(&token) {
+                methods.push(method);
+            }
+        }
+    }
+    methods
+}
+
+fn normalize_php_path(raw: &str) -> String {
+    if raw.is_empty() {
+        return "/".to_string();
+    }
+    if raw.starts_with('/') {
+        raw.to_string()
+    } else {
+        format!("/{raw}")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::PathBuf;
+
+    #[test]
+    fn nextjs_route_path_simple() {
+        let p = PathBuf::from("frontend/src/app/api/blogs/route.ts");
+        assert_eq!(nextjs_route_path(&p), Some("/api/blogs".to_string()));
+    }
+
+    #[test]
+    fn nextjs_route_path_dynamic_segment() {
+        let p = PathBuf::from("frontend/src/app/api/users/[id]/route.ts");
+        assert_eq!(nextjs_route_path(&p), Some("/api/users/:id".to_string()));
+    }
+
+    #[test]
+    fn nextjs_route_path_catchall() {
+        let p = PathBuf::from("frontend/src/app/data/[...slug]/route.ts");
+        assert_eq!(nextjs_route_path(&p), Some("/data/*slug".to_string()));
+    }
+
+    #[test]
+    fn nextjs_route_path_drops_route_group() {
+        let p = PathBuf::from("src/app/(marketing)/about/route.ts");
+        assert_eq!(nextjs_route_path(&p), Some("/about".to_string()));
+    }
+
+    #[test]
+    fn nextjs_route_path_root() {
+        let p = PathBuf::from("src/app/route.ts");
+        assert_eq!(nextjs_route_path(&p), Some("/".to_string()));
+    }
+
+    #[test]
+    fn nextjs_route_path_normalises_backslashes() {
+        let p = PathBuf::from(r"src\app\api\users\route.ts");
+        assert_eq!(nextjs_route_path(&p), Some("/api/users".to_string()));
+    }
+
+    #[test]
+    fn nextjs_route_path_rejects_non_app_router() {
+        let p = PathBuf::from("src/pages/api/users.ts");
+        assert_eq!(nextjs_route_path(&p), None);
+    }
+
+    #[test]
+    fn django_path_normalisation() {
+        assert_eq!(normalize_django_path(""), "/");
+        assert_eq!(normalize_django_path("about/"), "/about/");
+        assert_eq!(
+            normalize_django_path("/already-slashed"),
+            "/already-slashed"
+        );
+    }
+
+    #[test]
+    fn django_regex_paths_are_preserved() {
+        let regex = r"^api/posts/(?P<slug>[\w-]+)/$";
+        assert_eq!(normalize_django_path(regex), regex);
+        assert!(is_regex_path(regex));
+    }
+
+    #[test]
+    fn jsx_filter_keeps_components_and_semantic_tags() {
+        assert!(is_jsx_tag_worth_keeping("Navbar"));
+        assert!(is_jsx_tag_worth_keeping("MyComponent"));
+        assert!(is_jsx_tag_worth_keeping("nav"));
+        assert!(is_jsx_tag_worth_keeping("header"));
+        assert!(is_jsx_tag_worth_keeping("main"));
+    }
+
+    #[test]
+    fn jsx_filter_drops_generic_html() {
+        assert!(!is_jsx_tag_worth_keeping("div"));
+        assert!(!is_jsx_tag_worth_keeping("span"));
+        assert!(!is_jsx_tag_worth_keeping("p"));
+        assert!(!is_jsx_tag_worth_keeping("button"));
+        assert!(!is_jsx_tag_worth_keeping("h1"));
+    }
+
+    #[test]
+    fn nextjs_method_requires_uppercase_only() {
+        assert_eq!(nextjs_method_from_name("GET"), Some(HttpMethod::Get));
+        assert_eq!(nextjs_method_from_name("POST"), Some(HttpMethod::Post));
+        assert_eq!(nextjs_method_from_name("Get"), None);
+        assert_eq!(nextjs_method_from_name("get"), None);
+        assert_eq!(nextjs_method_from_name("HANDLER"), None);
+    }
+
+    fn parse_php(src: &str) -> FileSummary {
+        let mut parser = tree_sitter::Parser::new();
+        parser
+            .set_language(&Language::Php.ts_language())
+            .expect("load PHP grammar");
+        let tree = parser.parse(src, None).expect("parse PHP");
+        let mut summary = FileSummary {
+            path: PathBuf::from("test.php"),
+            language: Language::Php,
+            symbols: Vec::new(),
+            imports: Vec::new(),
+            semantic_tags: Vec::new(),
+            endpoints: Vec::new(),
+            line_count: src.lines().count(),
+            call_sites: Vec::new(),
+        };
+        extract(
+            Language::Php,
+            tree.root_node(),
+            src.as_bytes(),
+            &mut summary,
+        );
+        summary
+    }
+
+    fn symbol_kind<'a>(summary: &'a FileSummary, name: &str) -> Option<&'a SymbolKind> {
+        summary
+            .symbols
+            .iter()
+            .find(|s| s.name == name)
+            .map(|s| &s.kind)
+    }
+
+    #[test]
+    fn php_extracts_declaration_kinds() {
+        let src = r#"<?php
+function greet() {}
+class UserController { public function index() {} }
+interface Repo {}
+trait Sluggable {}
+enum Status: string { case Active = 'active'; }
+"#;
+        let summary = parse_php(src);
+        assert_eq!(symbol_kind(&summary, "greet"), Some(&SymbolKind::Function));
+        assert_eq!(
+            symbol_kind(&summary, "UserController"),
+            Some(&SymbolKind::Class)
+        );
+        assert_eq!(symbol_kind(&summary, "index"), Some(&SymbolKind::Method));
+        assert_eq!(symbol_kind(&summary, "Repo"), Some(&SymbolKind::Interface));
+        assert_eq!(symbol_kind(&summary, "Sluggable"), Some(&SymbolKind::Trait));
+        assert_eq!(symbol_kind(&summary, "Status"), Some(&SymbolKind::Enum));
+    }
+
+    #[test]
+    fn php_collects_use_imports() {
+        let src = "<?php\nuse App\\Models\\User;\nuse Illuminate\\Support\\Facades\\Route as R;\n";
+        let summary = parse_php(src);
+        assert!(summary.imports.iter().any(|i| i == "App\\Models\\User"));
+        assert!(summary
+            .imports
+            .iter()
+            .any(|i| i == "Illuminate\\Support\\Facades\\Route"));
+    }
+
+    #[test]
+    fn php_laravel_facade_routes() {
+        let src = r#"<?php
+Route::get('/users', [UserController::class, 'index']);
+Route::post('users', 'UserController@store');
+"#;
+        let summary = parse_php(src);
+        let get = summary
+            .endpoints
+            .iter()
+            .find(|e| e.method == HttpMethod::Get)
+            .expect("GET endpoint");
+        assert_eq!(get.path, "/users");
+        assert_eq!(get.handler.as_deref(), Some("UserController@index"));
+        assert_eq!(get.source, EndpointSource::PhpRoute);
+
+        let post = summary
+            .endpoints
+            .iter()
+            .find(|e| e.method == HttpMethod::Post)
+            .expect("POST endpoint");
+        assert_eq!(post.path, "/users");
+        assert_eq!(post.handler.as_deref(), Some("UserController@store"));
+    }
+
+    #[test]
+    fn php_member_route_requires_leading_slash() {
+        let src = r#"<?php
+$app->get('/ping', fn () => 'pong');
+$bag->get('cache_key');
+"#;
+        let summary = parse_php(src);
+        assert_eq!(summary.endpoints.len(), 1);
+        assert_eq!(summary.endpoints[0].path, "/ping");
+        assert_eq!(summary.endpoints[0].method, HttpMethod::Get);
+    }
+
+    #[test]
+    fn php_symfony_attribute_route() {
+        let src = r#"<?php
+class BlogController {
+    #[Route('/posts/{id}', methods: ['GET', 'HEAD'])]
+    public function show() {}
+}
+"#;
+        let summary = parse_php(src);
+        let methods: Vec<HttpMethod> = summary.endpoints.iter().map(|e| e.method).collect();
+        assert!(methods.contains(&HttpMethod::Get));
+        assert!(methods.contains(&HttpMethod::Head));
+        let show = summary
+            .endpoints
+            .iter()
+            .find(|e| e.method == HttpMethod::Get)
+            .unwrap();
+        assert_eq!(show.path, "/posts/{id}");
+        assert_eq!(show.handler.as_deref(), Some("show"));
+        assert_eq!(show.source, EndpointSource::PhpAttributeRoute);
+    }
+
+    #[test]
+    fn php_attribute_route_without_methods_defaults_to_any() {
+        let src = r#"<?php
+class HomeController {
+    #[Route('/')]
+    public function index() {}
+}
+"#;
+        let summary = parse_php(src);
+        assert_eq!(summary.endpoints.len(), 1);
+        assert_eq!(summary.endpoints[0].method, HttpMethod::Any);
+        assert_eq!(summary.endpoints[0].path, "/");
+    }
+
+    #[test]
+    fn php_path_normalisation() {
+        assert_eq!(normalize_php_path(""), "/");
+        assert_eq!(normalize_php_path("users"), "/users");
+        assert_eq!(normalize_php_path("/users"), "/users");
+    }
 }

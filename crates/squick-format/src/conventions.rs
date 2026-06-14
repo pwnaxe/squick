@@ -1,4 +1,4 @@
-// Copyright 2026 Horizon LLC
+// Copyright 2026 Hub Horizon LLC
 // SPDX-License-Identifier: Apache-2.0
 
 //! Architecture and stack conventions detected from manifests + file
@@ -40,7 +40,11 @@ pub fn format_conventions(project: &Project) -> String {
     if !detected.libraries.is_empty() {
         let _ = writeln!(out, "\n## Library choices");
         for (category, items) in &detected.libraries {
-            let _ = writeln!(out, "- **{category}**: {}", items.iter().cloned().collect::<Vec<_>>().join(", "));
+            let _ = writeln!(
+                out,
+                "- **{category}**: {}",
+                items.iter().cloned().collect::<Vec<_>>().join(", ")
+            );
         }
     }
 
@@ -89,8 +93,14 @@ fn detect_layout(project: &Project, d: &mut Detected) {
                 (Some(n), None) => n.clone(),
                 _ => "unnamed".to_string(),
             };
-            d.layout
-                .push(format!("`{}` -> {identity}", if rel.is_empty() { "(root)".to_string() } else { rel }));
+            d.layout.push(format!(
+                "`{}` -> {identity}",
+                if rel.is_empty() {
+                    "(root)".to_string()
+                } else {
+                    rel
+                }
+            ));
         }
     }
 }
@@ -104,7 +114,8 @@ fn detect_stack(project: &Project, d: &mut Detected) {
     }
 
     if framework_tags.contains("framework-nextjs") {
-        d.stack.insert("Frontend framework".into(), "Next.js".into());
+        d.stack
+            .insert("Frontend framework".into(), "Next.js".into());
     }
     if framework_tags.contains("framework-strapi") {
         d.stack.insert("Backend framework".into(), "Strapi".into());
@@ -123,6 +134,12 @@ fn detect_stack(project: &Project, d: &mut Detected) {
     }
     if framework_tags.contains("framework-nestjs") {
         d.stack.insert("Backend framework".into(), "NestJS".into());
+    }
+    if framework_tags.contains("framework-laravel") {
+        d.stack.insert("Backend framework".into(), "Laravel".into());
+    }
+    if framework_tags.contains("framework-symfony") {
+        d.stack.insert("Backend framework".into(), "Symfony".into());
     }
 
     let mut languages: BTreeSet<&str> = project.files.iter().map(|f| f.language.as_str()).collect();
@@ -213,6 +230,8 @@ fn detect_libraries(project: &Project, d: &mut Detected) {
                 ("pytest", "pytest"),
                 ("playwright", "Playwright"),
                 ("cypress", "Cypress"),
+                ("phpunit/phpunit", "PHPUnit"),
+                ("pestphp/pest", "Pest"),
             ],
         ),
         (
@@ -227,8 +246,15 @@ fn detect_libraries(project: &Project, d: &mut Detected) {
                 ("sqlalchemy", "SQLAlchemy"),
                 ("pg", "node-postgres"),
                 ("pymysql", "PyMySQL"),
+                ("doctrine/orm", "Doctrine"),
+                ("illuminate/database", "Eloquent"),
             ],
         ),
+        (
+            "templating",
+            &[("twig/twig", "Twig"), ("symfony/twig-bundle", "Twig")],
+        ),
+        ("HTTP client", &[("guzzlehttp/guzzle", "Guzzle")]),
         (
             "monorepo tooling",
             &[
@@ -247,10 +273,7 @@ fn detect_libraries(project: &Project, d: &mut Detected) {
                 ("remark-gfm", "remark-gfm"),
             ],
         ),
-        (
-            "email",
-            &[("nodemailer", "nodemailer")],
-        ),
+        ("email", &[("nodemailer", "nodemailer")]),
         (
             "date / time",
             &[
@@ -306,5 +329,7 @@ fn endpoint_source_label(source: &EndpointSource) -> &'static str {
         EndpointSource::PythonUrlpatterns => "Django urlpatterns",
         EndpointSource::JsMethodCall => "JS member-calls (Express/Koa)",
         EndpointSource::NextjsRouteHandler => "Next.js App Router",
+        EndpointSource::PhpRoute => "PHP route calls (Laravel/Slim)",
+        EndpointSource::PhpAttributeRoute => "PHP attributes (Symfony)",
     }
 }

@@ -1,0 +1,16 @@
+name: frameworks/symfony
+description: Symfony framework imports and conventional bundle layout.
+entries:
+  - { pattern: 'Symfony\*',                               kind: glob, match: import, tag: framework-symfony, confidence: high }
+  - { pattern: 'Symfony\Component\Routing\*',             kind: glob, match: import, tag: symfony-routing, confidence: high }
+  - { pattern: 'Symfony\Bundle\FrameworkBundle\*',        kind: glob, match: import, tag: symfony-controller, confidence: high }
+  - { pattern: 'Doctrine\ORM\*',                          kind: glob, match: import, tag: orm-doctrine, confidence: high }
+
+  - { pattern: "Controller",     match: path-segment, tag: symfony-controllers, confidence: high }
+  - { pattern: "Entity",         match: path-segment, tag: symfony-entities, confidence: high }
+  - { pattern: "Repository",     match: path-segment, tag: symfony-repositories, confidence: high }
+
+  - { pattern: "services.yaml",  match: filename, tag: symfony-service-container, confidence: high }
+  - { pattern: "routes.yaml",    match: filename, tag: symfony-routes, confidence: high }
+  - { pattern: "Kernel.php",     match: filename, tag: symfony-kernel, confidence: high }
+  - { pattern: "*Controller.php", kind: glob, match: filename, tag: symfony-controller, confidence: medium }

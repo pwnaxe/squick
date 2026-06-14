@@ -1,4 +1,4 @@
-// Copyright 2026 Horizon LLC
+// Copyright 2026 Hub Horizon LLC
 // SPDX-License-Identifier: Apache-2.0
 
 //! Walks the project tree for `package.json`, `pyproject.toml`, and Strapi
@@ -15,6 +15,7 @@ use std::path::Path;
 
 const PACKAGE_JSON: &str = "package.json";
 const PYPROJECT_TOML: &str = "pyproject.toml";
+const COMPOSER_JSON: &str = "composer.json";
 const SCHEMA_JSON: &str = "schema.json";
 
 pub fn scan(project: &mut Project, respect_ignore: bool) {
@@ -38,6 +39,11 @@ pub fn scan(project: &mut Project, respect_ignore: bool) {
             }
             PYPROJECT_TOML => {
                 if let Some(manifest) = parse_pyproject_toml(path) {
+                    project.manifests.push(manifest);
+                }
+            }
+            COMPOSER_JSON => {
+                if let Some(manifest) = parse_composer_json(path) {
                     project.manifests.push(manifest);
                 }
             }
@@ -252,6 +258,94 @@ fn derive_python_framework_tags(dependencies: &[String]) -> Vec<SemanticTag> {
             "rq" => emit("task-queue-rq"),
             "pytest" => emit("test-pytest"),
             _ => {}
+        }
+    }
+    tags
+}
+
+fn parse_composer_json(path: &Path) -> Option<Manifest> {
+    let text = std::fs::read_to_string(path).ok()?;
+    let value: Value = serde_json::from_str(&text).ok()?;
+
+    let name = value.get("name").and_then(|v| v.as_str()).map(String::from);
+    let version = value
+        .get("version")
+        .and_then(|v| v.as_str())
+        .map(String::from);
+    let dependencies = collect_composer_dependencies(&value);
+    let scripts = value
+        .get("scripts")
+        .and_then(|v| v.as_object())
+        .map(|obj| obj.keys().cloned().collect())
+        .unwrap_or_default();
+    let framework_tags = derive_php_framework_tags(&dependencies);
+
+    Some(Manifest {
+        kind: ManifestKind::PhpComposer,
+        path: path.to_path_buf(),
+        name,
+        version,
+        dependencies,
+        scripts,
+        framework_tags,
+    })
+}
+
+fn collect_composer_dependencies(value: &Value) -> Vec<String> {
+    const FIELDS: &[&str] = &["require", "require-dev"];
+    let mut deps = Vec::new();
+    for field in FIELDS {
+        if let Some(obj) = value.get(*field).and_then(|v| v.as_object()) {
+            for key in obj.keys() {
+                // `php` and `ext-*` are platform requirements, not packages.
+                if key == "php" || key.starts_with("ext-") {
+                    continue;
+                }
+                if !deps.contains(key) {
+                    deps.push(key.clone());
+                }
+            }
+        }
+    }
+    deps
+}
+
+fn derive_php_framework_tags(dependencies: &[String]) -> Vec<SemanticTag> {
+    let mut tags = Vec::new();
+    let mut emit = |label: &str| {
+        if !tags.iter().any(|t: &SemanticTag| t.label == label) {
+            tags.push(SemanticTag {
+                label: label.to_string(),
+                source: TagSource::Heuristic {
+                    rule: "composer-dependency".to_string(),
+                },
+                confidence: Confidence::High,
+            });
+        }
+    };
+    for dep in dependencies {
+        let lower = dep.to_ascii_lowercase();
+        match lower.as_str() {
+            "laravel/framework" => emit("framework-laravel"),
+            "symfony/framework-bundle" => emit("framework-symfony"),
+            "slim/slim" => emit("framework-slim"),
+            "cakephp/cakephp" => emit("framework-cakephp"),
+            "laminas/laminas-mvc" => emit("framework-laminas"),
+            "doctrine/orm" => emit("orm-doctrine"),
+            "illuminate/database" => emit("orm-eloquent"),
+            "twig/twig" => emit("templating-twig"),
+            "guzzlehttp/guzzle" => emit("http-guzzle"),
+            "phpunit/phpunit" => emit("test-phpunit"),
+            "pestphp/pest" => emit("test-pest"),
+            _ => {
+                if lower.starts_with("symfony/") {
+                    emit("framework-symfony");
+                } else if lower.starts_with("yiisoft/") {
+                    emit("framework-yii");
+                } else if lower.starts_with("drupal/") {
+                    emit("framework-drupal");
+                }
+            }
         }
     }
     tags

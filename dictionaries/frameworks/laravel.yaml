@@ -1,0 +1,21 @@
+name: frameworks/laravel
+description: Laravel framework imports and conventional app layout.
+entries:
+  - { pattern: 'Illuminate\*',                    kind: glob, match: import, tag: framework-laravel, confidence: high }
+  - { pattern: 'Illuminate\Database\Eloquent\*',  kind: glob, match: import, tag: orm-eloquent, confidence: high }
+  - { pattern: 'Illuminate\Support\Facades\*',    kind: glob, match: import, tag: laravel-facade, confidence: high }
+
+  - { pattern: "app",            match: path-segment, tag: laravel-app, confidence: low }
+  - { pattern: "Http",           match: path-segment, tag: laravel-http-layer, confidence: medium }
+  - { pattern: "Controllers",    match: path-segment, tag: laravel-controllers, confidence: high }
+  - { pattern: "Middleware",     match: path-segment, tag: laravel-middleware, confidence: high }
+  - { pattern: "Models",         match: path-segment, tag: laravel-models, confidence: medium }
+  - { pattern: "Migrations",     match: path-segment, tag: laravel-migrations, confidence: high }
+  - { pattern: "Seeders",        match: path-segment, tag: laravel-seeders, confidence: high }
+
+  - { pattern: "web.php",        match: filename, tag: laravel-web-routes, confidence: high, note: "HTTP routes for the web middleware group." }
+  - { pattern: "api.php",        match: filename, tag: laravel-api-routes, confidence: high, note: "Stateless API routes." }
+  - { pattern: "console.php",    match: filename, tag: laravel-console-routes, confidence: high }
+  - { pattern: "channels.php",   match: filename, tag: laravel-broadcast-channels, confidence: high }
+  - { pattern: "artisan",        match: filename, tag: laravel-cli-entrypoint, confidence: high }
+  - { pattern: "AppServiceProvider.php", match: filename, tag: laravel-service-provider, confidence: high }
