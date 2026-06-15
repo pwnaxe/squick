@@ -26,25 +26,23 @@ env:
 jobs:
   audit:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      issues: write
     steps:
       - uses: actions/checkout@v4
-      - name: cargo audit
-        uses: rustsec/audit-check@v2
+      # Prebuilt binary: installing cargo-audit from source pulls the gix and
+      # aws-lc-sys stack, which is slow and brittle on CI.
+      - uses: taiki-e/install-action@v2
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          tool: cargo-audit
+      - name: cargo audit
+        run: cargo audit
 
   sbom:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Show toolchain
-        run: rustup show
-      - uses: Swatinem/rust-cache@v2
-      - name: Install cargo-cyclonedx
-        run: cargo install cargo-cyclonedx --locked
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-cyclonedx
       - name: Generate SBOM
         run: cargo cyclonedx --format json --all
       - name: Upload SBOM
