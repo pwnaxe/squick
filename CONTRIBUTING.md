@@ -14,7 +14,7 @@ By participating you agree to abide by the
 | ----------------------------------------- | -------------------------------------------- |
 | Bug fixes with a test                     | always welcome                               |
 | Performance improvements with a benchmark | always welcome                               |
-| New YAML dictionaries                     | welcome; see `dictionaries/` for the format  |
+| New YAML dictionaries                     | welcome; see the dictionary section below    |
 | New language support (Tree-sitter)        | open an issue first to align scope           |
 | New endpoint detectors                    | open an issue first to align scope           |
 | Output format changes                     | open an issue first; downstream consumers care |
@@ -55,7 +55,7 @@ them separately if you are working on the npm or PyPI wrapper.
 
 ## Adding a framework dictionary
 
-YAML lives in `dictionaries/<category>/<name>.yaml`. The schema is
+YAML lives in `crates/squick-cli/dictionaries/<category>/<name>.yaml`. The schema is
 documented in the project README. A new dictionary needs at minimum:
 
 - A `name` that matches its directory and filename.

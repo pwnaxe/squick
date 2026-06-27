@@ -105,7 +105,7 @@ jobs:
             if [[ -d "${inner}/dictionaries" ]]; then
               cp -R "${inner}/dictionaries" "${target_dir}/dictionaries"
             else
-              cp -R dictionaries "${target_dir}/dictionaries"
+              cp -R crates/squick-cli/dictionaries "${target_dir}/dictionaries"
             fi
             cp "${inner}/LICENSE" "${target_dir}/LICENSE" 2>/dev/null || cp LICENSE "${target_dir}/LICENSE"
             node -e "const f='${target_dir}/package.json';const p=require('path').resolve(f);const j=require(p);j.version=process.env.VERSION;require('fs').writeFileSync(p, JSON.stringify(j,null,2)+'\n');"

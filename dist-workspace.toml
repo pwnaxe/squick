@@ -13,5 +13,7 @@ installers = ["shell", "powershell"]
 targets = ["aarch64-apple-darwin", "aarch64-unknown-linux-gnu", "x86_64-apple-darwin", "x86_64-unknown-linux-gnu", "x86_64-pc-windows-msvc"]
 # Where to host releases
 hosting = "github"
-# Extra files to bundle alongside the binary in every release archive
-include = ["dictionaries/"]
+# Extra files to bundle alongside the binary in every release archive.
+# The binary also embeds these at build time; the next-to-binary copy is a
+# convenience/override for wrappers.
+include = ["crates/squick-cli/dictionaries/"]

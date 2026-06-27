@@ -65,43 +65,35 @@ jobs:
             echo "Running in REAL publish mode"
           fi
 
-      # Always runs. In dry-run mode this is the only validation step.
-      - name: Publish squick-core
+      # Publishes in dependency order, skipping any crate whose current
+      # version is already on crates.io. Idempotent: a re-run after a
+      # partial failure only publishes the crates that are still missing.
+      # Dry-run mode validates squick-core only.
+      - name: Publish crates
         run: |
+          set -euo pipefail
+
           if [ "${{ steps.mode.outputs.dry }}" = "true" ]; then
             cargo publish -p squick-core --dry-run --allow-dirty
-          else
-            cargo publish -p squick-core
+            exit 0
           fi
 
-      - name: Wait for index
-        if: steps.mode.outputs.dry == 'false'
-        run: sleep 30
+          publish() {
+            crate="$1"
+            ver=$(cargo metadata --no-deps --format-version 1 \
+              | jq -r --arg c "$crate" '.packages[] | select(.name==$c) | .version')
+            if curl -sf -H 'User-Agent: squick-ci' \
+              "https://crates.io/api/v1/crates/${crate}/${ver}" >/dev/null 2>&1; then
+              echo "== ${crate}@${ver} already on crates.io, skipping"
+              return 0
+            fi
+            echo "== publishing ${crate}@${ver}"
+            cargo publish -p "$crate"
+            sleep 30
+          }
 
-      - name: Publish squick-dict
-        if: steps.mode.outputs.dry == 'false'
-        run: cargo publish -p squick-dict
-
-      - name: Wait for index
-        if: steps.mode.outputs.dry == 'false'
-        run: sleep 30
-
-      - name: Publish squick-format
-        if: steps.mode.outputs.dry == 'false'
-        run: cargo publish -p squick-format
-
-      - name: Wait for index
-        if: steps.mode.outputs.dry == 'false'
-        run: sleep 30
-
-      - name: Publish squick-watch
-        if: steps.mode.outputs.dry == 'false'
-        run: cargo publish -p squick-watch
-
-      - name: Wait for index
-        if: steps.mode.outputs.dry == 'false'
-        run: sleep 30
-
-      - name: Publish squick-cli
-        if: steps.mode.outputs.dry == 'false'
-        run: cargo publish -p squick-cli
+          publish squick-core
+          publish squick-dict
+          publish squick-format
+          publish squick-watch
+          publish squick-cli

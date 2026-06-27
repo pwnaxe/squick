@@ -121,8 +121,8 @@ Frontend: Next.js (App Router + Pages Router), React, Tailwind.
 Infrastructure: Docker and Docker Compose (base images, build stages,
 exposed ports, services, backing data stores).
 
-Add a YAML file under `dictionaries/frameworks/` to teach Squick a new
-framework. No Rust changes required for most additions.
+Add a YAML file under `crates/squick-cli/dictionaries/frameworks/` to teach
+Squick a new framework. No Rust changes required for most additions.
 
 ## CLI
 
@@ -189,7 +189,8 @@ and any other MCP-aware host.
 
 ## Dictionary format
 
-Dictionaries are YAML files under `dictionaries/<category>/<name>.yaml`:
+Dictionaries are YAML files under
+`crates/squick-cli/dictionaries/<category>/<name>.yaml`:
 
 ```yaml
 name: frameworks/example
@@ -216,12 +217,12 @@ squick/
     squick-format/     Output emitters (markdown / JSON / NDJSON / triples / conventions)
     squick-watch/      Debounced file watcher
     squick-cli/        `squick` binary
+      dictionaries/    YAML pattern catalogues (embedded into the binary)
   bindings/
     node/              napi-rs bindings (npm distribution)
     python/            PyO3 bindings (PyPI distribution)
   extensions/
     vscode/            VS Code extension
-  dictionaries/        YAML pattern catalogues
 ```
 
 ## Built by Hub Horizon LLC

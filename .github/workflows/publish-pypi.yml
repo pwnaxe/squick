@@ -100,7 +100,7 @@ jobs:
           if [[ -d "${inner}/dictionaries" ]]; then
             cp -R "${inner}/dictionaries" "${target}/dictionaries"
           else
-            cp -R dictionaries "${target}/dictionaries"
+            cp -R crates/squick-cli/dictionaries "${target}/dictionaries"
           fi
 
       - name: Build pure-python wheel

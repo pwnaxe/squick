@@ -16,7 +16,7 @@ const DEFAULT_DICTIONARY_DIR: &str = "dictionaries";
 /// (`SQUICK_DICT_DIR`, `./dictionaries`, or next to the executable) still
 /// wins when present, but this fallback lets a `cargo install`-ed binary
 /// detect frameworks without the source tree alongside it.
-static EMBEDDED_DICTIONARIES: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../../dictionaries");
+static EMBEDDED_DICTIONARIES: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/dictionaries");
 
 #[derive(Parser)]
 #[command(
