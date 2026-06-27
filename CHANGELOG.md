@@ -4,6 +4,36 @@ All notable changes to this project are documented in this file. The
 format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.0.0] - 2026-06-28
+
+### Added
+
+- Docker as a first-class stack. Dockerfile extraction covers base images,
+  build stages, exposed ports, `ENTRYPOINT`/`CMD`, `WORKDIR`, `USER`, `ENV`
+  keys, `ARG` names, and `VOLUME`. Compose extraction covers services,
+  images, build contexts, ports, `depends_on`, `command`, `environment`
+  keys, `env_file`, `volumes`, and `networks`. Environment values are
+  dropped; only keys are kept to avoid leaking secrets into the context.
+- Container semantic tags for runtime base images (`base-node`,
+  `base-python`, `base-distroless`, ...), backing services
+  (`service-postgres`, `service-redis`, ...), and multi-stage builds.
+- `context.txt`: a compact columnar artifact for AI consumers, emitted with
+  `--full`. Column names are declared once per record type, then rows are
+  bare TAB-delimited values. Carries the same facts as `context.ndjson` at
+  roughly 40% less size, with a larger token saving in practice.
+
+### Changed
+
+- Dictionaries are embedded in the `squick` binary at build time. An on-disk
+  `dictionaries/` directory (or `SQUICK_DICT_DIR`, or one next to the
+  executable) still overrides the embedded set for development.
+
+### Fixed
+
+- `cargo install squick-cli` produced a binary that could not locate its
+  dictionaries, silently degrading framework detection. The embedded
+  fallback resolves this so installed binaries are self-contained.
+
 ## [1.4.0] - 2026-06-15
 
 ### Added

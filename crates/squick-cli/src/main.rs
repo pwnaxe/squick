@@ -5,11 +5,18 @@ mod mcp;
 
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand, ValueEnum};
+use include_dir::{include_dir, Dir};
 use squick_core::{Project, ScanOptions, Scanner};
-use squick_dict::{load_directory, Matcher};
+use squick_dict::{load_directory, load_str, Dictionary, Matcher};
 use std::path::{Path, PathBuf};
 
 const DEFAULT_DICTIONARY_DIR: &str = "dictionaries";
+
+/// Dictionaries baked into the binary at build time. An on-disk directory
+/// (`SQUICK_DICT_DIR`, `./dictionaries`, or next to the executable) still
+/// wins when present, but this fallback lets a `cargo install`-ed binary
+/// detect frameworks without the source tree alongside it.
+static EMBEDDED_DICTIONARIES: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../../dictionaries");
 
 #[derive(Parser)]
 #[command(
@@ -43,8 +50,8 @@ enum Command {
         /// Skip writing the auxiliary `.squick/schemas.md` file.
         #[arg(long)]
         no_schemas: bool,
-        /// Also write the tool-only artifacts (`context.ndjson`, `graph.txt`)
-        /// alongside the chat-attachable ones.
+        /// Also write the tool-only artifacts (`context.txt`,
+        /// `context.ndjson`, `graph.txt`) alongside the chat-attachable ones.
         #[arg(long)]
         full: bool,
     },
@@ -202,6 +209,8 @@ fn cmd_scan(
         };
 
         if filters.full {
+            let compact_path = squick_dir.join("context.txt");
+            std::fs::write(&compact_path, squick_format::format_compact(&project))?;
             let ndjson_path = squick_dir.join("context.ndjson");
             std::fs::write(&ndjson_path, squick_format::format_ndjson(&project))?;
             let graph_path = squick_dir.join("graph.txt");
@@ -227,11 +236,14 @@ fn report_outputs(root: &Path, schemas_written: bool, full: bool) {
     }
     eprintln!("  context.md      - index pointing at the files above");
     if full {
-        eprintln!("  context.ndjson  - structured facts (tool-only)");
+        eprintln!("  context.txt     - compact columnar facts (AI-primary, tool-only)");
+        eprintln!("  context.ndjson  - structured facts as JSON (tool-only)");
         eprintln!("  graph.txt       - dependency triples (tool-only)");
     } else {
         eprintln!();
-        eprintln!("  Tip: re-run with --full to also emit context.ndjson and graph.txt");
+        eprintln!(
+            "  Tip: re-run with --full to also emit context.txt, context.ndjson, and graph.txt"
+        );
         eprintln!("       for MCP servers and scripts.");
     }
 }
@@ -276,27 +288,63 @@ fn cmd_init(root: &Path) -> Result<()> {
 }
 
 /// Loads dictionaries from `dict_dir` if provided, otherwise from the
-/// default location. Skips silently if no dictionary directory is found,
-/// so `squick scan` works on bare projects.
+/// default location, falling back to the embedded set. Applies them to the
+/// project so framework/file-role tags land on symbols and files.
 fn apply_dictionaries(project: &mut Project, dict_dir: Option<&Path>) -> Result<()> {
-    let resolved = match dict_dir {
-        Some(p) => Some(p.to_path_buf()),
-        None => default_dictionary_dir(),
-    };
-    let Some(path) = resolved else {
-        return Ok(());
-    };
-    if !path.exists() {
-        return Ok(());
-    }
-    let dicts = load_directory(&path)
-        .with_context(|| format!("loading dictionaries from {}", path.display()))?;
+    let dicts = resolve_dictionaries(dict_dir)?;
     if dicts.is_empty() {
         return Ok(());
     }
-    let matcher = Matcher::from_dictionaries(dicts);
-    matcher.apply(project);
+    Matcher::from_dictionaries(dicts).apply(project);
     Ok(())
+}
+
+/// Resolves the dictionaries to apply. An on-disk directory wins when it
+/// exists and is non-empty (the development override); otherwise the
+/// dictionaries embedded at build time are used so installed binaries are
+/// self-contained.
+pub(crate) fn resolve_dictionaries(dict_dir: Option<&Path>) -> Result<Vec<Dictionary>> {
+    let on_disk = match dict_dir {
+        Some(p) => Some(p.to_path_buf()),
+        None => default_dictionary_dir(),
+    };
+    if let Some(path) = on_disk {
+        if path.exists() {
+            let dicts = load_directory(&path)
+                .with_context(|| format!("loading dictionaries from {}", path.display()))?;
+            if !dicts.is_empty() {
+                return Ok(dicts);
+            }
+        }
+    }
+    Ok(embedded_dictionaries())
+}
+
+fn embedded_dictionaries() -> Vec<Dictionary> {
+    let mut out = Vec::new();
+    collect_embedded(&EMBEDDED_DICTIONARIES, &mut out);
+    out
+}
+
+fn collect_embedded(dir: &Dir<'_>, out: &mut Vec<Dictionary>) {
+    for file in dir.files() {
+        let path = file.path();
+        let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
+        if ext != "yaml" && ext != "yml" {
+            continue;
+        }
+        let Some(text) = file.contents_utf8() else {
+            continue;
+        };
+        let name = path.with_extension("").to_string_lossy().replace('\\', "/");
+        match load_str(&name, text) {
+            Ok(dict) => out.push(dict),
+            Err(e) => eprintln!("squick: skip embedded dictionary {name}: {e}"),
+        }
+    }
+    for sub in dir.dirs() {
+        collect_embedded(sub, out);
+    }
 }
 
 fn default_dictionary_dir() -> Option<PathBuf> {

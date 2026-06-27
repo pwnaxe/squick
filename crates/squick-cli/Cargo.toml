@@ -28,3 +28,4 @@ serde_json.workspace = true
 tokio.workspace = true
 rmcp.workspace = true
 schemars.workspace = true
+include_dir.workspace = true

@@ -20,7 +20,7 @@ use rmcp::{
 };
 use serde::{Deserialize, Serialize};
 use squick_core::{Project, ScanOptions, Scanner};
-use squick_dict::{load_directory, Matcher};
+use squick_dict::Matcher;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -179,6 +179,7 @@ impl SquickServer {
             project_tags: Vec::new(),
             manifests: Vec::new(),
             strapi_schemas: Vec::new(),
+            docker: Vec::new(),
         };
         let markdown = squick_format::format_markdown(&single);
         Ok(CallToolResult::success(vec![Content::text(markdown)]))
@@ -194,13 +195,7 @@ impl SquickServer {
     }
 
     fn apply_dictionaries(&self, project: &mut Project) -> Result<(), ErrorData> {
-        let Some(path) = self.dict_dir.as_ref() else {
-            return Ok(());
-        };
-        if !path.exists() {
-            return Ok(());
-        }
-        let dicts = load_directory(path)
+        let dicts = crate::resolve_dictionaries(self.dict_dir.as_ref().as_deref())
             .map_err(|e| ErrorData::internal_error(format!("loading dictionaries: {e}"), None))?;
         if !dicts.is_empty() {
             Matcher::from_dictionaries(dicts).apply(project);

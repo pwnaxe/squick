@@ -192,6 +192,73 @@ pub struct Manifest {
     pub framework_tags: Vec<SemanticTag>,
 }
 
+/// Which container artifact a `DockerArtifact` was parsed from.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum DockerKind {
+    /// A `Dockerfile`, `Dockerfile.*`, `*.dockerfile`, or `Containerfile`.
+    Dockerfile,
+    /// A `docker-compose.yml` / `compose.yaml` orchestration file.
+    Compose,
+}
+
+/// One `FROM` line in a Dockerfile. Multi-stage builds yield several.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DockerStage {
+    pub base_image: String,
+    /// The `AS <name>` alias, when the stage is named.
+    pub name: Option<String>,
+}
+
+/// A service declared in a Compose file.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DockerService {
+    pub name: String,
+    /// Pre-built image reference (`image:` key).
+    pub image: Option<String>,
+    /// Build context (`build:` key), when the service builds locally.
+    pub build: Option<String>,
+    pub ports: Vec<String>,
+    pub depends_on: Vec<String>,
+    /// `command:` override, rendered as a single string.
+    pub command: Option<String>,
+    /// Keys of `environment:` (values dropped: noise and possible secrets).
+    pub environment: Vec<String>,
+    /// `env_file:` paths.
+    pub env_file: Vec<String>,
+    /// `volumes:` entries (short or long form, rendered as strings).
+    pub volumes: Vec<String>,
+    /// `networks:` the service is attached to.
+    pub networks: Vec<String>,
+}
+
+/// Container tooling detected in the repository. A Dockerfile populates
+/// `stages`/`exposed_ports` plus the runtime/config fields; a Compose file
+/// populates `services`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DockerArtifact {
+    pub kind: DockerKind,
+    pub path: PathBuf,
+    pub stages: Vec<DockerStage>,
+    pub exposed_ports: Vec<String>,
+    pub services: Vec<DockerService>,
+    pub tags: Vec<SemanticTag>,
+    /// Effective `ENTRYPOINT` (last one wins), rendered as a string.
+    pub entrypoint: Option<String>,
+    /// Effective `CMD` (last one wins), rendered as a string.
+    pub cmd: Option<String>,
+    /// Effective `WORKDIR`.
+    pub workdir: Option<String>,
+    /// Effective `USER` the container runs as.
+    pub user: Option<String>,
+    /// Keys declared via `ENV` (values dropped).
+    pub env_keys: Vec<String>,
+    /// Names declared via `ARG` (build-time configuration).
+    pub build_args: Vec<String>,
+    /// Paths declared via `VOLUME`.
+    pub volumes: Vec<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StrapiAttribute {
     pub name: String,
@@ -218,6 +285,7 @@ pub struct Project {
     pub project_tags: Vec<SemanticTag>,
     pub manifests: Vec<Manifest>,
     pub strapi_schemas: Vec<StrapiSchema>,
+    pub docker: Vec<DockerArtifact>,
 }
 
 #[cfg(test)]

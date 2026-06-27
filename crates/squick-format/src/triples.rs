@@ -5,7 +5,9 @@
 //! Compact graph representation. No quoting, no nesting; identifiers
 //! use short URI-like prefixes (`file:`, `sym:`, `schema:`, `ep:`).
 
-use squick_core::{Endpoint, FileSummary, Manifest, Project, StrapiSchema, Symbol};
+use squick_core::{
+    DockerArtifact, DockerKind, Endpoint, FileSummary, Manifest, Project, StrapiSchema, Symbol,
+};
 use std::fmt::Write;
 
 pub fn format_triples(project: &Project) -> String {
@@ -32,8 +34,76 @@ pub fn format_triples(project: &Project) -> String {
     for schema in &project.strapi_schemas {
         schema_triples(&mut out, schema);
     }
+    for artifact in &project.docker {
+        docker_triples(&mut out, root_id, artifact, &project.root);
+    }
 
     out
+}
+
+fn docker_triples(out: &mut String, proj: &str, artifact: &DockerArtifact, root: &std::path::Path) {
+    let path = relative_path(&artifact.path, root);
+    let id = format!("docker:{path}");
+    let kind = match artifact.kind {
+        DockerKind::Dockerfile => "dockerfile",
+        DockerKind::Compose => "compose",
+    };
+    let _ = writeln!(out, "{id} type {kind}");
+    let _ = writeln!(out, "{proj} declares {id}");
+    for stage in &artifact.stages {
+        let _ = writeln!(out, "{id} from image:{}", stage.base_image);
+        if let Some(name) = &stage.name {
+            let _ = writeln!(out, "{id} stage {name}");
+        }
+    }
+    for port in &artifact.exposed_ports {
+        let _ = writeln!(out, "{id} exposes port:{port}");
+    }
+    if let Some(entrypoint) = &artifact.entrypoint {
+        let _ = writeln!(out, "{id} entrypoint {entrypoint}");
+    }
+    if let Some(cmd) = &artifact.cmd {
+        let _ = writeln!(out, "{id} cmd {cmd}");
+    }
+    if let Some(workdir) = &artifact.workdir {
+        let _ = writeln!(out, "{id} workdir {workdir}");
+    }
+    if let Some(user) = &artifact.user {
+        let _ = writeln!(out, "{id} user {user}");
+    }
+    for key in &artifact.env_keys {
+        let _ = writeln!(out, "{id} env {key}");
+    }
+    for arg in &artifact.build_args {
+        let _ = writeln!(out, "{id} arg {arg}");
+    }
+    for volume in &artifact.volumes {
+        let _ = writeln!(out, "{id} volume {volume}");
+    }
+    for service in &artifact.services {
+        let _ = writeln!(out, "{id} service svc:{}", service.name);
+        if let Some(image) = &service.image {
+            let _ = writeln!(out, "svc:{} image {image}", service.name);
+        }
+        if let Some(command) = &service.command {
+            let _ = writeln!(out, "svc:{} cmd {command}", service.name);
+        }
+        for dep in &service.depends_on {
+            let _ = writeln!(out, "svc:{} depends svc:{dep}", service.name);
+        }
+        for key in &service.environment {
+            let _ = writeln!(out, "svc:{} env {key}", service.name);
+        }
+        for volume in &service.volumes {
+            let _ = writeln!(out, "svc:{} volume {volume}", service.name);
+        }
+        for network in &service.networks {
+            let _ = writeln!(out, "svc:{} network {network}", service.name);
+        }
+    }
+    for tag in &artifact.tags {
+        let _ = writeln!(out, "{id} tag {}", tag.label);
+    }
 }
 
 fn project_triples(out: &mut String, id: &str, project: &Project) {

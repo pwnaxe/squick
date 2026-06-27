@@ -89,8 +89,12 @@ For programmatic consumers (MCP servers, scripts) add `--full`:
 squick scan ./your-project --full
 ```
 
-This additionally writes `context.ndjson` (one JSON fact per line) and
-`graph.txt` (subject-predicate-object triples).
+This additionally writes the tool-only AI artifacts:
+
+- `context.txt` - compact columnar facts (densest, lowest token cost):
+  one `@type` header per record kind, then TAB-delimited rows.
+- `context.ndjson` - the same facts as JSON, one per line.
+- `graph.txt` - subject-predicate-object triples.
 
 ## What gets extracted
 
@@ -100,6 +104,7 @@ This additionally writes `context.ndjson` (one JSON fact per line) and
 - **Manifests**: `package.json`, `pyproject.toml`, `composer.json` (identity, dependencies, scripts, framework detection).
 - **Endpoints**: FastAPI/Flask decorators, Django urlpatterns, Express member-calls, Next.js App Router file layout, Laravel route facades, Symfony route attributes.
 - **Data schemas**: Strapi content types (kind, names, attributes, relations).
+- **Containers**: `Dockerfile` base images, build stages, exposed ports; `docker-compose` services, images, ports, and `depends_on` links. Backing services (Postgres, Redis, etc.) and runtime base images surface as stack tags.
 
 ## Supported languages
 
@@ -112,6 +117,9 @@ Koa, Fastify, NestJS, Sanity, Payload CMS, WordPress (file roles), Laravel,
 Symfony.
 
 Frontend: Next.js (App Router + Pages Router), React, Tailwind.
+
+Infrastructure: Docker and Docker Compose (base images, build stages,
+exposed ports, services, backing data stores).
 
 Add a YAML file under `dictionaries/frameworks/` to teach Squick a new
 framework. No Rust changes required for most additions.
@@ -126,7 +134,7 @@ squick scan [root]                One-shot scan into .squick/
   --include GLOB                  Repeatable. Only scan matching paths
   --exclude GLOB                  Repeatable. Skip matching paths
   --no-schemas                    Skip .squick/schemas.md
-  --full                          Also emit context.ndjson + graph.txt
+  --full                          Also emit context.txt + context.ndjson + graph.txt
 
 squick watch [root]               Re-scan on file save (same flags)
 squick init [root]                Create empty .squick/ directory

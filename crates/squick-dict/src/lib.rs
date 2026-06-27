@@ -9,6 +9,6 @@ pub mod loader;
 pub mod matcher;
 pub mod types;
 
-pub use loader::{load_directory, load_file};
+pub use loader::{load_directory, load_file, load_str};
 pub use matcher::Matcher;
 pub use types::{Dictionary, Entry, MatchKind, PatternKind};

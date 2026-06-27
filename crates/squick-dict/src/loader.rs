@@ -17,6 +17,18 @@ pub fn load_file(path: &Path) -> Result<Dictionary> {
     Ok(dict)
 }
 
+/// Parses a dictionary from an in-memory string. Used for dictionaries
+/// embedded in the binary at build time, where there is no file to read.
+/// `name` is the fallback identity when the YAML omits a `name:` field.
+pub fn load_str(name: &str, text: &str) -> Result<Dictionary> {
+    let mut dict: Dictionary =
+        serde_yaml_ng::from_str(text).with_context(|| format!("parsing dictionary {name}"))?;
+    if dict.name.is_empty() {
+        dict.name = name.to_string();
+    }
+    Ok(dict)
+}
+
 pub fn load_directory(dir: &Path) -> Result<Vec<Dictionary>> {
     let mut out = Vec::new();
     for entry in WalkDir::new(dir).into_iter().filter_map(|e| e.ok()) {

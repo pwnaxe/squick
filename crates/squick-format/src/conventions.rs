@@ -6,7 +6,7 @@
 //! which i18n library is used, where API routes live, whether the repo
 //! is a monorepo, etc.
 
-use squick_core::{EndpointSource, Project};
+use squick_core::{DockerKind, EndpointSource, Project};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write;
 
@@ -37,6 +37,18 @@ pub fn format_conventions(project: &Project) -> String {
         }
     }
 
+    if !detected.containerization.is_empty() {
+        let _ = writeln!(out, "\n## Containerization");
+        for line in &detected.containerization {
+            // Nested lines arrive pre-indented; top-level lines get a bullet.
+            if line.starts_with(' ') {
+                let _ = writeln!(out, "{line}");
+            } else {
+                let _ = writeln!(out, "- {line}");
+            }
+        }
+    }
+
     if !detected.libraries.is_empty() {
         let _ = writeln!(out, "\n## Library choices");
         for (category, items) in &detected.libraries {
@@ -62,6 +74,7 @@ pub fn format_conventions(project: &Project) -> String {
 struct Detected {
     layout: Vec<String>,
     stack: BTreeMap<String, String>,
+    containerization: Vec<String>,
     libraries: BTreeMap<String, BTreeSet<String>>,
     api_surface: Vec<String>,
 }
@@ -70,9 +83,157 @@ fn detect_conventions(project: &Project) -> Detected {
     let mut d = Detected::default();
     detect_layout(project, &mut d);
     detect_stack(project, &mut d);
+    detect_containerization(project, &mut d);
     detect_libraries(project, &mut d);
     detect_api_surface(project, &mut d);
     d
+}
+
+fn detect_containerization(project: &Project, d: &mut Detected) {
+    if project.docker.is_empty() {
+        return;
+    }
+
+    let dockerfiles: Vec<_> = project
+        .docker
+        .iter()
+        .filter(|a| a.kind == DockerKind::Dockerfile)
+        .collect();
+    let compose: Vec<_> = project
+        .docker
+        .iter()
+        .filter(|a| a.kind == DockerKind::Compose)
+        .collect();
+
+    let mut stack_value: Vec<&str> = Vec::new();
+    if !dockerfiles.is_empty() {
+        stack_value.push("Docker");
+    }
+    if !compose.is_empty() {
+        stack_value.push("Docker Compose");
+    }
+    d.stack
+        .insert("Containerization".into(), stack_value.join(" + "));
+
+    if !dockerfiles.is_empty() {
+        let mut base_images: BTreeSet<String> = BTreeSet::new();
+        let mut ports: BTreeSet<String> = BTreeSet::new();
+        let mut entrypoints: BTreeSet<String> = BTreeSet::new();
+        let mut commands: BTreeSet<String> = BTreeSet::new();
+        let mut users: BTreeSet<String> = BTreeSet::new();
+        let mut build_args: BTreeSet<String> = BTreeSet::new();
+        let mut env_keys: BTreeSet<String> = BTreeSet::new();
+        let mut volumes: BTreeSet<String> = BTreeSet::new();
+        let mut multi_stage = false;
+        for art in &dockerfiles {
+            for stage in &art.stages {
+                base_images.insert(stage.base_image.clone());
+            }
+            if art.stages.len() > 1 {
+                multi_stage = true;
+            }
+            ports.extend(art.exposed_ports.iter().cloned());
+            entrypoints.extend(art.entrypoint.clone());
+            commands.extend(art.cmd.clone());
+            users.extend(art.user.clone());
+            build_args.extend(art.build_args.iter().cloned());
+            env_keys.extend(art.env_keys.iter().cloned());
+            volumes.extend(art.volumes.iter().cloned());
+        }
+        d.containerization.push(format!(
+            "{} Dockerfile(s){}",
+            dockerfiles.len(),
+            if multi_stage {
+                "; multi-stage build"
+            } else {
+                ""
+            }
+        ));
+        push_joined(&mut d.containerization, "Base images", base_images);
+        if !entrypoints.is_empty() {
+            d.containerization.push(format!(
+                "Entrypoint: {}",
+                entrypoints.into_iter().collect::<Vec<_>>().join(" | ")
+            ));
+        }
+        if !commands.is_empty() {
+            d.containerization.push(format!(
+                "Default command: {}",
+                commands.into_iter().collect::<Vec<_>>().join(" | ")
+            ));
+        }
+        if !users.is_empty() {
+            d.containerization.push(format!(
+                "Runs as user: {}",
+                users.into_iter().collect::<Vec<_>>().join(", ")
+            ));
+        }
+        push_joined(&mut d.containerization, "Build args", build_args);
+        push_joined(&mut d.containerization, "Env vars", env_keys);
+        push_joined(&mut d.containerization, "Declared volumes", volumes);
+        push_joined(&mut d.containerization, "Exposed ports", ports);
+    }
+
+    if !compose.is_empty() {
+        let mut count = 0usize;
+        let mut names: Vec<String> = Vec::new();
+        let mut backing: BTreeSet<String> = BTreeSet::new();
+        for art in &compose {
+            for tag in &art.tags {
+                if let Some(name) = tag.label.strip_prefix("service-") {
+                    backing.insert(name.to_string());
+                }
+            }
+            for svc in &art.services {
+                count += 1;
+                names.push(svc.name.clone());
+            }
+        }
+        d.containerization.push(format!(
+            "Docker Compose: {count} service(s) ({})",
+            names.join(", ")
+        ));
+        // One nested line per service that carries configuration worth noting.
+        for art in &compose {
+            for svc in &art.services {
+                let mut bits: Vec<String> = Vec::new();
+                if let Some(cmd) = &svc.command {
+                    bits.push(format!("command `{cmd}`"));
+                }
+                if !svc.environment.is_empty() {
+                    bits.push(format!("env {}", svc.environment.join(", ")));
+                }
+                if !svc.env_file.is_empty() {
+                    bits.push(format!("env_file {}", svc.env_file.join(", ")));
+                }
+                if !svc.volumes.is_empty() {
+                    bits.push(format!("volumes {}", svc.volumes.join(", ")));
+                }
+                if !svc.networks.is_empty() {
+                    bits.push(format!("networks {}", svc.networks.join(", ")));
+                }
+                if !bits.is_empty() {
+                    d.containerization
+                        .push(format!("  - {}: {}", svc.name, bits.join("; ")));
+                }
+            }
+        }
+        if !backing.is_empty() {
+            d.containerization.push(format!(
+                "Backing services: {}",
+                backing.into_iter().collect::<Vec<_>>().join(", ")
+            ));
+        }
+    }
+}
+
+fn push_joined(out: &mut Vec<String>, label: &str, values: BTreeSet<String>) {
+    if !values.is_empty() {
+        out.push(format!(
+            "{label}: {}",
+            values.into_iter().collect::<Vec<_>>().join(", ")
+        ));
+    }
 }
 
 fn detect_layout(project: &Project, d: &mut Detected) {

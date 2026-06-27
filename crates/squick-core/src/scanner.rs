@@ -1,6 +1,7 @@
 // Copyright 2026 Hub Horizon LLC
 // SPDX-License-Identifier: Apache-2.0
 
+use crate::docker;
 use crate::error::{Error, Result};
 use crate::language::Language;
 use crate::manifest;
@@ -93,6 +94,8 @@ impl Scanner {
         manifest::scan(&mut project, self.options.respect_ignore);
         project.manifests.sort_by(|a, b| a.path.cmp(&b.path));
         project.strapi_schemas.sort_by(|a, b| a.path.cmp(&b.path));
+        docker::scan(&mut project, self.options.respect_ignore);
+        project.docker.sort_by(|a, b| a.path.cmp(&b.path));
         resolve_references(&mut project);
 
         Ok(project)

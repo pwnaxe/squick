@@ -6,7 +6,9 @@
 //! endpoints, languages) rather than byte-for-byte golden files, so they hold
 //! across the Linux/macOS/Windows CI matrix where path separators differ.
 
-use squick_core::{EndpointSource, HttpMethod, ManifestKind, Project, ScanOptions, Scanner};
+use squick_core::{
+    DockerKind, EndpointSource, HttpMethod, ManifestKind, Project, ScanOptions, Scanner,
+};
 use std::path::PathBuf;
 
 fn fixture(name: &str) -> Project {
@@ -108,6 +110,153 @@ fn multi_framework_renders_schemas_and_markdown() {
 
     let markdown = squick_format::format_markdown(&project);
     assert!(!markdown.trim().is_empty());
+}
+
+#[test]
+fn multi_framework_parses_dockerfile_and_compose() {
+    let project = fixture("multi-framework");
+
+    let dockerfile = project
+        .docker
+        .iter()
+        .find(|a| a.kind == DockerKind::Dockerfile)
+        .expect("Dockerfile artifact");
+    // Multi-stage: node build stage + nginx runtime.
+    assert_eq!(dockerfile.stages.len(), 2);
+    assert_eq!(dockerfile.stages[0].name.as_deref(), Some("build"));
+    assert!(dockerfile.stages[0].base_image.starts_with("node:"));
+    assert!(dockerfile.exposed_ports.contains(&"80".to_string()));
+    let docker_labels: Vec<&str> = dockerfile.tags.iter().map(|t| t.label.as_str()).collect();
+    assert!(docker_labels.contains(&"base-node"));
+    assert!(docker_labels.contains(&"base-nginx"));
+    assert!(docker_labels.contains(&"docker-multi-stage"));
+
+    // Tier 1 runtime + config surface.
+    assert_eq!(dockerfile.entrypoint.as_deref(), Some("nginx"));
+    assert_eq!(dockerfile.cmd.as_deref(), Some("-g daemon off;"));
+    assert_eq!(dockerfile.workdir.as_deref(), Some("/app"));
+    assert_eq!(dockerfile.user.as_deref(), Some("nginx"));
+    assert!(dockerfile.build_args.contains(&"NODE_ENV".to_string()));
+    assert!(dockerfile.env_keys.contains(&"PORT".to_string()));
+    assert!(dockerfile
+        .env_keys
+        .contains(&"NEXT_TELEMETRY_DISABLED".to_string()));
+    assert!(dockerfile.volumes.contains(&"/var/cache/nginx".to_string()));
+
+    let compose = project
+        .docker
+        .iter()
+        .find(|a| a.kind == DockerKind::Compose)
+        .expect("Compose artifact");
+    assert!(compose.services.iter().any(|s| s.name == "db"));
+    let web = compose
+        .services
+        .iter()
+        .find(|s| s.name == "web")
+        .expect("web service");
+    assert_eq!(web.build.as_deref(), Some("."));
+    assert!(web.depends_on.contains(&"db".to_string()));
+    let compose_labels: Vec<&str> = compose.tags.iter().map(|t| t.label.as_str()).collect();
+    assert!(compose_labels.contains(&"service-postgres"));
+    assert!(compose_labels.contains(&"service-redis"));
+
+    // Tier 1 per-service config: command, environment (keys), volumes, networks.
+    let api = compose
+        .services
+        .iter()
+        .find(|s| s.name == "api")
+        .expect("api service");
+    assert_eq!(
+        api.command.as_deref(),
+        Some("uvicorn main:app --host 0.0.0.0")
+    );
+    assert!(api.environment.contains(&"DATABASE_URL".to_string()));
+    assert!(api.environment.contains(&"REDIS_URL".to_string()));
+    // Values are dropped; only keys are retained.
+    assert!(!api.environment.iter().any(|e| e.contains('=')));
+    assert!(api.env_file.contains(&".env".to_string()));
+    assert!(api.volumes.contains(&"./api:/code".to_string()));
+    assert!(api.networks.contains(&"backend".to_string()));
+
+    // Mapping-form environment (db service) yields its keys too.
+    let db = compose
+        .services
+        .iter()
+        .find(|s| s.name == "db")
+        .expect("db service");
+    assert!(db.environment.contains(&"POSTGRES_PASSWORD".to_string()));
+}
+
+#[test]
+fn multi_framework_conventions_report_containerization() {
+    let project = fixture("multi-framework");
+    let conventions = squick_format::format_conventions(&project);
+
+    assert!(
+        conventions.contains("## Containerization"),
+        "conventions: {conventions}"
+    );
+    assert!(
+        conventions.contains("Docker Compose"),
+        "conventions: {conventions}"
+    );
+    assert!(
+        conventions.contains("postgres"),
+        "conventions: {conventions}"
+    );
+
+    // Docker facts must also reach the NDJSON and triple emitters.
+    let ndjson = squick_format::format_ndjson(&project);
+    assert!(
+        ndjson.lines().any(|l| l.contains("\"k\":\"dock\"")),
+        "ndjson should contain docker facts"
+    );
+    let triples = squick_format::format_triples(&project);
+    assert!(
+        triples.contains("type compose"),
+        "triples should describe the compose file"
+    );
+}
+
+#[test]
+fn compact_format_is_aligned_and_smaller() {
+    let project = fixture("multi-framework");
+    let compact = squick_format::format_compact(&project);
+
+    // Legend first, then sectioned records.
+    assert!(compact.starts_with("# squick compact v1"));
+    assert!(compact.contains("\n@file\t"));
+    assert!(compact.contains("\n@ep\t"));
+    assert!(compact.contains("\n@dock\t"));
+
+    // Every data row must have exactly as many fields as its section header.
+    let mut header_cols: Option<usize> = None;
+    for line in compact.lines() {
+        if line.starts_with('#') {
+            continue;
+        }
+        let cols = line.split('\t').count();
+        if let Some(name) = line.strip_prefix('@') {
+            // Header declares the column set (minus the `@type` marker cell).
+            header_cols = Some(cols - 1);
+            assert!(!name.is_empty());
+        } else {
+            let expected = header_cols.expect("row before any section header");
+            assert_eq!(
+                cols, expected,
+                "row has {cols} fields, header declared {expected}: {line}"
+            );
+        }
+    }
+
+    // The whole point: denser than the JSON view.
+    let ndjson = squick_format::format_ndjson(&project);
+    assert!(
+        compact.len() < ndjson.len(),
+        "compact ({}) should be smaller than ndjson ({})",
+        compact.len(),
+        ndjson.len()
+    );
 }
 
 #[test]

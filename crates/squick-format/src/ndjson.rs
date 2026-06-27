@@ -7,7 +7,10 @@
 
 use serde::Serialize;
 use serde_json::json;
-use squick_core::{Endpoint, FileSummary, Manifest, Project, SemanticTag, StrapiSchema, Symbol};
+use squick_core::{
+    DockerArtifact, DockerKind, Endpoint, FileSummary, Manifest, Project, SemanticTag,
+    StrapiSchema, Symbol,
+};
 use std::fmt::Write;
 
 pub fn format_ndjson(project: &Project) -> String {
@@ -49,6 +52,9 @@ pub fn format_ndjson(project: &Project) -> String {
     for schema in &project.strapi_schemas {
         push_schema(&mut out, schema);
     }
+    for (i, artifact) in project.docker.iter().enumerate() {
+        push_docker(&mut out, i, artifact, &project.root);
+    }
 
     out
 }
@@ -62,6 +68,7 @@ struct ProjectFact<'a> {
     references: usize,
     endpoints: usize,
     schemas: usize,
+    containers: usize,
     frameworks: Vec<&'a str>,
 }
 
@@ -91,8 +98,63 @@ fn push_project(out: &mut String, project: &Project) {
         references,
         endpoints,
         schemas: project.strapi_schemas.len(),
+        containers: project.docker.len(),
         frameworks,
     };
+    let _ = writeln!(out, "{}", serde_json::to_string(&fact).unwrap());
+}
+
+fn push_docker(out: &mut String, idx: usize, artifact: &DockerArtifact, root: &std::path::Path) {
+    let path = artifact
+        .path
+        .strip_prefix(root)
+        .unwrap_or(&artifact.path)
+        .display()
+        .to_string();
+    let kind = match artifact.kind {
+        DockerKind::Dockerfile => "dockerfile",
+        DockerKind::Compose => "compose",
+    };
+    let stages: Vec<_> = artifact
+        .stages
+        .iter()
+        .map(|s| json!({ "base": s.base_image, "as": s.name }))
+        .collect();
+    let services: Vec<_> = artifact
+        .services
+        .iter()
+        .map(|s| {
+            json!({
+                "name": s.name,
+                "image": s.image,
+                "build": s.build,
+                "ports": s.ports,
+                "depends_on": s.depends_on,
+                "cmd": s.command,
+                "env": s.environment,
+                "env_file": s.env_file,
+                "volumes": s.volumes,
+                "networks": s.networks,
+            })
+        })
+        .collect();
+    let fact = json!({
+        "k": "dock",
+        "id": format!("d{idx}"),
+        "p": path,
+        "kind": kind,
+        "stages": stages,
+        "ports": artifact.exposed_ports,
+        "entrypoint": artifact.entrypoint,
+        "cmd": artifact.cmd,
+        "workdir": artifact.workdir,
+        "user": artifact.user,
+        "env": artifact.env_keys,
+        "args": artifact.build_args,
+        "volumes": artifact.volumes,
+        "services": services,
+        "tags": label_list(&artifact.tags),
+    });
     let _ = writeln!(out, "{}", serde_json::to_string(&fact).unwrap());
 }
 
