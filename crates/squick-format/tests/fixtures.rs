@@ -260,6 +260,44 @@ fn compact_format_is_aligned_and_smaller() {
 }
 
 #[test]
+fn monorepo_splits_into_per_subproject_areas() {
+    let project = fixture("monorepo");
+    let areas = squick_format::detect_areas(&project);
+
+    let titles: Vec<&str> = areas.iter().map(|a| a.title.as_str()).collect();
+    assert_eq!(areas.len(), 2, "areas: {titles:?}");
+    assert!(titles.contains(&"frontend"));
+    assert!(titles.contains(&"backend"));
+
+    // Files land in the right area.
+    let backend = areas.iter().find(|a| a.title == "backend").unwrap();
+    let backend_md = squick_format::format_area(&project, backend);
+    assert!(backend_md.contains("FastAPI"), "backend: {backend_md}");
+    assert!(backend_md.contains("/products"), "backend: {backend_md}");
+    let frontend = areas.iter().find(|a| a.title == "frontend").unwrap();
+    let frontend_md = squick_format::format_area(&project, frontend);
+    assert!(frontend_md.contains("Next.js"), "frontend: {frontend_md}");
+
+    // Navigation routes to each area file.
+    let nav = squick_format::format_navigation(&project, &areas, true, true);
+    assert!(nav.contains("area-frontend.md"), "nav: {nav}");
+    assert!(nav.contains("area-backend.md"), "nav: {nav}");
+
+    // Docker stays cross-cutting in infra, not severed into an area.
+    let infra = squick_format::format_infra(&project).expect("infra doc");
+    assert!(infra.contains("Compose"), "infra: {infra}");
+    assert!(infra.contains("postgres"), "infra: {infra}");
+}
+
+#[test]
+fn polyglot_single_root_does_not_split() {
+    // multi-framework holds three manifests in the same root directory; that
+    // is one polyglot project, not a monorepo, so it must not split.
+    let project = fixture("multi-framework");
+    assert!(squick_format::detect_areas(&project).is_empty());
+}
+
+#[test]
 fn sample_fixture_scans_clean() {
     let project = fixture("sample");
     assert!(

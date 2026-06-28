@@ -84,6 +84,22 @@ Writes a small set of artifacts to `.squick/`:
   or API questions.
 - `context.md`: tiny index pointing at the two files above.
 
+### Monorepo output
+
+When more than one sub-project is detected (manifests in distinct
+directories), Squick splits the output by area so an agent attaches only
+the file relevant to its question:
+
+- `context.md` becomes a **navigation** index routing each question to an area.
+- `area-<name>.md` per detected sub-project: its stack, libraries, API
+  surface, and notable files (e.g. `area-frontend.md`, `area-backend.md`).
+- `infra.md`: cross-cutting Docker / Compose configuration.
+- `conventions.md` and the `--full` graph stay whole, so cross-area
+  references are never severed.
+
+Polyglot single-root projects (several manifests in one directory) stay
+single-file. Force single output with `--split never`.
+
 For programmatic consumers (MCP servers, scripts) add `--full`:
 
 ```bash
@@ -136,6 +152,7 @@ squick scan [root]                One-shot scan into .squick/
   --exclude GLOB                  Repeatable. Skip matching paths
   --no-schemas                    Skip .squick/schemas.md
   --full                          Also emit context.txt + context.ndjson + graph.txt
+  --split auto|never              Split a monorepo per sub-project (default: auto)
 
 squick watch [root]               Re-scan on file save (same flags)
 squick init [root]                Create empty .squick/ directory

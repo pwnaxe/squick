@@ -90,8 +90,19 @@ fn detect_conventions(project: &Project) -> Detected {
 }
 
 fn detect_containerization(project: &Project, d: &mut Detected) {
+    if let Some((stack_value, lines)) = containerization_summary(project) {
+        d.stack.insert("Containerization".into(), stack_value);
+        d.containerization = lines;
+    }
+}
+
+/// Builds the containerization summary: the stack value (`Docker`,
+/// `Docker Compose`) and the detail lines (base images, ports, services,
+/// backing stores). Shared by the global conventions view and `infra.md`.
+/// Returns `None` when the repo has no container files.
+pub(crate) fn containerization_summary(project: &Project) -> Option<(String, Vec<String>)> {
     if project.docker.is_empty() {
-        return;
+        return None;
     }
 
     let dockerfiles: Vec<_> = project
@@ -105,15 +116,16 @@ fn detect_containerization(project: &Project, d: &mut Detected) {
         .filter(|a| a.kind == DockerKind::Compose)
         .collect();
 
-    let mut stack_value: Vec<&str> = Vec::new();
+    let mut stack_parts: Vec<&str> = Vec::new();
     if !dockerfiles.is_empty() {
-        stack_value.push("Docker");
+        stack_parts.push("Docker");
     }
     if !compose.is_empty() {
-        stack_value.push("Docker Compose");
+        stack_parts.push("Docker Compose");
     }
-    d.stack
-        .insert("Containerization".into(), stack_value.join(" + "));
+    let stack_value = stack_parts.join(" + ");
+
+    let mut lines: Vec<String> = Vec::new();
 
     if !dockerfiles.is_empty() {
         let mut base_images: BTreeSet<String> = BTreeSet::new();
@@ -140,7 +152,7 @@ fn detect_containerization(project: &Project, d: &mut Detected) {
             env_keys.extend(art.env_keys.iter().cloned());
             volumes.extend(art.volumes.iter().cloned());
         }
-        d.containerization.push(format!(
+        lines.push(format!(
             "{} Dockerfile(s){}",
             dockerfiles.len(),
             if multi_stage {
@@ -149,29 +161,29 @@ fn detect_containerization(project: &Project, d: &mut Detected) {
                 ""
             }
         ));
-        push_joined(&mut d.containerization, "Base images", base_images);
+        push_joined(&mut lines, "Base images", base_images);
         if !entrypoints.is_empty() {
-            d.containerization.push(format!(
+            lines.push(format!(
                 "Entrypoint: {}",
                 entrypoints.into_iter().collect::<Vec<_>>().join(" | ")
             ));
         }
         if !commands.is_empty() {
-            d.containerization.push(format!(
+            lines.push(format!(
                 "Default command: {}",
                 commands.into_iter().collect::<Vec<_>>().join(" | ")
             ));
         }
         if !users.is_empty() {
-            d.containerization.push(format!(
+            lines.push(format!(
                 "Runs as user: {}",
                 users.into_iter().collect::<Vec<_>>().join(", ")
             ));
         }
-        push_joined(&mut d.containerization, "Build args", build_args);
-        push_joined(&mut d.containerization, "Env vars", env_keys);
-        push_joined(&mut d.containerization, "Declared volumes", volumes);
-        push_joined(&mut d.containerization, "Exposed ports", ports);
+        push_joined(&mut lines, "Build args", build_args);
+        push_joined(&mut lines, "Env vars", env_keys);
+        push_joined(&mut lines, "Declared volumes", volumes);
+        push_joined(&mut lines, "Exposed ports", ports);
     }
 
     if !compose.is_empty() {
@@ -189,7 +201,7 @@ fn detect_containerization(project: &Project, d: &mut Detected) {
                 names.push(svc.name.clone());
             }
         }
-        d.containerization.push(format!(
+        lines.push(format!(
             "Docker Compose: {count} service(s) ({})",
             names.join(", ")
         ));
@@ -213,18 +225,19 @@ fn detect_containerization(project: &Project, d: &mut Detected) {
                     bits.push(format!("networks {}", svc.networks.join(", ")));
                 }
                 if !bits.is_empty() {
-                    d.containerization
-                        .push(format!("  - {}: {}", svc.name, bits.join("; ")));
+                    lines.push(format!("  - {}: {}", svc.name, bits.join("; ")));
                 }
             }
         }
         if !backing.is_empty() {
-            d.containerization.push(format!(
+            lines.push(format!(
                 "Backing services: {}",
                 backing.into_iter().collect::<Vec<_>>().join(", ")
             ));
         }
     }
+
+    Some((stack_value, lines))
 }
 
 fn push_joined(out: &mut Vec<String>, label: &str, values: BTreeSet<String>) {
@@ -273,35 +286,7 @@ fn detect_stack(project: &Project, d: &mut Detected) {
             framework_tags.insert(tag.label.clone());
         }
     }
-
-    if framework_tags.contains("framework-nextjs") {
-        d.stack
-            .insert("Frontend framework".into(), "Next.js".into());
-    }
-    if framework_tags.contains("framework-strapi") {
-        d.stack.insert("Backend framework".into(), "Strapi".into());
-    }
-    if framework_tags.contains("framework-django") {
-        d.stack.insert("Backend framework".into(), "Django".into());
-    }
-    if framework_tags.contains("framework-fastapi") {
-        d.stack.insert("Backend framework".into(), "FastAPI".into());
-    }
-    if framework_tags.contains("framework-flask") {
-        d.stack.insert("Backend framework".into(), "Flask".into());
-    }
-    if framework_tags.contains("framework-express") {
-        d.stack.insert("Backend framework".into(), "Express".into());
-    }
-    if framework_tags.contains("framework-nestjs") {
-        d.stack.insert("Backend framework".into(), "NestJS".into());
-    }
-    if framework_tags.contains("framework-laravel") {
-        d.stack.insert("Backend framework".into(), "Laravel".into());
-    }
-    if framework_tags.contains("framework-symfony") {
-        d.stack.insert("Backend framework".into(), "Symfony".into());
-    }
+    d.stack.extend(framework_stack(&framework_tags));
 
     let mut languages: BTreeSet<&str> = project.files.iter().map(|f| f.language.as_str()).collect();
     languages.remove("");
@@ -313,13 +298,41 @@ fn detect_stack(project: &Project, d: &mut Detected) {
     }
 }
 
+/// Maps framework tags to stack entries (frontend/backend framework labels).
+/// Shared by the global conventions view and per-area views.
+pub(crate) fn framework_stack(tags: &BTreeSet<String>) -> BTreeMap<String, String> {
+    let mut stack = BTreeMap::new();
+    let mappings: &[(&str, &str, &str)] = &[
+        ("framework-nextjs", "Frontend framework", "Next.js"),
+        ("framework-strapi", "Backend framework", "Strapi"),
+        ("framework-django", "Backend framework", "Django"),
+        ("framework-fastapi", "Backend framework", "FastAPI"),
+        ("framework-flask", "Backend framework", "Flask"),
+        ("framework-express", "Backend framework", "Express"),
+        ("framework-nestjs", "Backend framework", "NestJS"),
+        ("framework-laravel", "Backend framework", "Laravel"),
+        ("framework-symfony", "Backend framework", "Symfony"),
+    ];
+    for (tag, slot, label) in mappings {
+        if tags.contains(*tag) {
+            stack.insert(slot.to_string(), label.to_string());
+        }
+    }
+    stack
+}
+
 fn detect_libraries(project: &Project, d: &mut Detected) {
     let all_deps: BTreeSet<String> = project
         .manifests
         .iter()
         .flat_map(|m| m.dependencies.iter().cloned())
         .collect();
+    d.libraries = library_choices(&all_deps);
+}
 
+/// Maps a dependency set to detected library choices grouped by category.
+/// Shared by the global conventions view and per-area views.
+pub(crate) fn library_choices(deps: &BTreeSet<String>) -> BTreeMap<String, BTreeSet<String>> {
     let categories: &[(&str, &[(&str, &str)])] = &[
         (
             "i18n",
@@ -446,16 +459,17 @@ fn detect_libraries(project: &Project, d: &mut Detected) {
         ),
     ];
 
+    let mut out: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
     for (category, rules) in categories {
         for (dep, label) in *rules {
-            if all_deps.contains(*dep) {
-                d.libraries
-                    .entry(category.to_string())
+            if deps.contains(*dep) {
+                out.entry(category.to_string())
                     .or_default()
                     .insert(label.to_string());
             }
         }
     }
+    out
 }
 
 fn detect_api_surface(project: &Project, d: &mut Detected) {
@@ -484,7 +498,7 @@ fn detect_api_surface(project: &Project, d: &mut Detected) {
     }
 }
 
-fn endpoint_source_label(source: &EndpointSource) -> &'static str {
+pub(crate) fn endpoint_source_label(source: &EndpointSource) -> &'static str {
     match source {
         EndpointSource::PythonDecorator => "Python decorators (FastAPI/Flask)",
         EndpointSource::PythonUrlpatterns => "Django urlpatterns",

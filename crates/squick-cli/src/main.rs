@@ -54,6 +54,9 @@ enum Command {
         /// `context.ndjson`, `graph.txt`) alongside the chat-attachable ones.
         #[arg(long)]
         full: bool,
+        /// Split a monorepo into per-sub-project files (auto when >1 detected).
+        #[arg(long, value_enum, default_value_t = SplitMode::Auto)]
+        split: SplitMode,
     },
     /// Watch the filesystem and rewrite context on change.
     Watch {
@@ -69,6 +72,8 @@ enum Command {
         excludes: Vec<String>,
         #[arg(long)]
         no_schemas: bool,
+        #[arg(long, value_enum, default_value_t = SplitMode::Auto)]
+        split: SplitMode,
     },
     /// Initialize a `.squick/` directory in the current project.
     Init {
@@ -88,12 +93,23 @@ enum OutputFormat {
     Json,
 }
 
+/// Controls whether a monorepo's output is split per detected sub-project.
+#[derive(Copy, Clone, Default, ValueEnum)]
+enum SplitMode {
+    /// Split into per-area files when more than one sub-project is detected.
+    #[default]
+    Auto,
+    /// Always keep a single `context.md` index.
+    Never,
+}
+
 #[derive(Clone, Default)]
 struct ScanFilters {
     includes: Vec<String>,
     excludes: Vec<String>,
     no_schemas: bool,
     full: bool,
+    split: SplitMode,
 }
 
 fn main() -> Result<()> {
@@ -108,6 +124,7 @@ fn main() -> Result<()> {
             excludes,
             no_schemas,
             full,
+            split,
         } => cmd_scan(
             &root,
             format,
@@ -118,6 +135,7 @@ fn main() -> Result<()> {
                 excludes,
                 no_schemas,
                 full,
+                split,
             },
         ),
         Command::Watch {
@@ -127,6 +145,7 @@ fn main() -> Result<()> {
             includes,
             excludes,
             no_schemas,
+            split,
         } => cmd_watch(
             &root,
             format,
@@ -136,6 +155,7 @@ fn main() -> Result<()> {
                 excludes,
                 no_schemas,
                 full: false,
+                split,
             },
         ),
         Command::Init { root } => cmd_init(&root),
@@ -168,64 +188,100 @@ fn cmd_scan(
 
     apply_dictionaries(&mut project, dict_dir)?;
 
-    let body = match format {
-        OutputFormat::Markdown => squick_format::format_markdown(&project),
-        OutputFormat::Json => squick_format::format_json(&project)?,
-    };
-
-    let out_path = match out {
-        Some(p) => p.to_path_buf(),
-        None => {
-            let dir = root.join(".squick");
-            std::fs::create_dir_all(&dir)?;
-            dir.join(match format {
-                OutputFormat::Markdown => "context.md",
-                OutputFormat::Json => "context.json",
-            })
-        }
-    };
-    std::fs::write(&out_path, body)?;
-
-    if matches!(format, OutputFormat::Markdown) && out.is_none() {
-        let squick_dir = root.join(".squick");
-        std::fs::create_dir_all(&squick_dir)?;
-
-        let conventions_path = squick_dir.join("conventions.md");
-        std::fs::write(
-            &conventions_path,
-            squick_format::format_conventions(&project),
-        )?;
-
-        let schemas_written = if !filters.no_schemas {
-            if let Some(schemas) = squick_format::format_schemas(&project) {
-                let schemas_path = squick_dir.join("schemas.md");
-                std::fs::write(&schemas_path, schemas)?;
-                true
-            } else {
-                false
-            }
-        } else {
-            false
+    // Explicit `--out` or JSON format: a single file, no artifact set.
+    if out.is_some() || matches!(format, OutputFormat::Json) {
+        let body = match format {
+            OutputFormat::Markdown => squick_format::format_markdown(&project),
+            OutputFormat::Json => squick_format::format_json(&project)?,
         };
-
-        if filters.full {
-            let compact_path = squick_dir.join("context.txt");
-            std::fs::write(&compact_path, squick_format::format_compact(&project))?;
-            let ndjson_path = squick_dir.join("context.ndjson");
-            std::fs::write(&ndjson_path, squick_format::format_ndjson(&project))?;
-            let graph_path = squick_dir.join("graph.txt");
-            std::fs::write(&graph_path, squick_format::format_triples(&project))?;
-        }
-
-        report_outputs(root, schemas_written, filters.full);
-    } else {
+        let out_path = match out {
+            Some(p) => p.to_path_buf(),
+            None => {
+                let dir = root.join(".squick");
+                std::fs::create_dir_all(&dir)?;
+                dir.join("context.json")
+            }
+        };
+        std::fs::write(&out_path, body)?;
         eprintln!("squick: wrote {}", out_path.display());
+        return Ok(());
     }
 
+    // Default: the chat-attachable markdown artifact set in `.squick/`.
+    let squick_dir = root.join(".squick");
+    std::fs::create_dir_all(&squick_dir)?;
+    std::fs::write(
+        squick_dir.join("conventions.md"),
+        squick_format::format_conventions(&project),
+    )?;
+
+    let schemas_written = if !filters.no_schemas {
+        if let Some(schemas) = squick_format::format_schemas(&project) {
+            std::fs::write(squick_dir.join("schemas.md"), schemas)?;
+            true
+        } else {
+            false
+        }
+    } else {
+        false
+    };
+
+    let areas = match filters.split {
+        SplitMode::Never => Vec::new(),
+        SplitMode::Auto => squick_format::detect_areas(&project),
+    };
+    let infra = squick_format::format_infra(&project);
+
+    if areas.is_empty() {
+        // Single-project repo: one index pointing at conventions/schemas.
+        std::fs::write(
+            squick_dir.join("context.md"),
+            squick_format::format_markdown(&project),
+        )?;
+    } else {
+        // Monorepo: navigation index plus one focused file per sub-project,
+        // and a cross-cutting infra file. The global graph stays whole.
+        std::fs::write(
+            squick_dir.join("context.md"),
+            squick_format::format_navigation(&project, &areas, infra.is_some(), schemas_written),
+        )?;
+        for area in &areas {
+            std::fs::write(
+                squick_dir.join(format!("area-{}.md", area.slug)),
+                squick_format::format_area(&project, area),
+            )?;
+        }
+        if let Some(infra) = &infra {
+            std::fs::write(squick_dir.join("infra.md"), infra)?;
+        }
+    }
+
+    if filters.full {
+        std::fs::write(
+            squick_dir.join("context.txt"),
+            squick_format::format_compact(&project),
+        )?;
+        std::fs::write(
+            squick_dir.join("context.ndjson"),
+            squick_format::format_ndjson(&project),
+        )?;
+        std::fs::write(
+            squick_dir.join("graph.txt"),
+            squick_format::format_triples(&project),
+        )?;
+    }
+
+    report_outputs(root, schemas_written, filters.full, &areas, infra.is_some());
     Ok(())
 }
 
-fn report_outputs(root: &Path, schemas_written: bool, full: bool) {
+fn report_outputs(
+    root: &Path,
+    schemas_written: bool,
+    full: bool,
+    areas: &[squick_format::Area],
+    has_infra: bool,
+) {
     let dir = root.join(".squick").display().to_string();
     eprintln!("squick: wrote {dir}/");
     eprintln!(
@@ -234,7 +290,20 @@ fn report_outputs(root: &Path, schemas_written: bool, full: bool) {
     if schemas_written {
         eprintln!("  schemas.md      - attach to your AI chat for data/API questions");
     }
-    eprintln!("  context.md      - index pointing at the files above");
+    if areas.is_empty() {
+        eprintln!("  context.md      - index pointing at the files above");
+    } else {
+        eprintln!(
+            "  context.md      - navigation across {} sub-project area(s)",
+            areas.len()
+        );
+        for area in areas {
+            eprintln!("    area-{}.md - {}", area.slug, area.title);
+        }
+        if has_infra {
+            eprintln!("    infra.md - cross-cutting Docker / Compose config");
+        }
+    }
     if full {
         eprintln!("  context.txt     - compact columnar facts (AI-primary, tool-only)");
         eprintln!("  context.ndjson  - structured facts as JSON (tool-only)");

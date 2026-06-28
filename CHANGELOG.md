@@ -4,6 +4,21 @@ All notable changes to this project are documented in this file. The
 format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- Monorepo output splitting. When manifests are found in more than one
+  directory, `squick scan` emits a navigation `context.md`, one focused
+  `area-<name>.md` per detected sub-project (its stack, libraries, API
+  surface, and notable files), and a cross-cutting `infra.md` for Docker /
+  Compose. The global `conventions.md` and the `--full` graph stay whole, so
+  cross-area references are not severed. Polyglot single-root projects stay
+  single-file. New `--split auto|never` flag (default `auto`).
+- ROI benchmark counts Dockerfiles and Compose files in the source corpus,
+  and tolerates files that cannot be copied (Windows reserved names, broken
+  symlinks) so it can measure real repositories.
+
 ## [2.0.0] - 2026-06-28
 
 ### Added

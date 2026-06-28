@@ -5,6 +5,7 @@
 //! (architecture summary), markdown (human-readable summary), JSON
 //! (full structured snapshot).
 
+pub mod areas;
 pub mod compact;
 pub mod conventions;
 pub mod json;
@@ -13,6 +14,7 @@ pub mod ndjson;
 pub mod schemas;
 pub mod triples;
 
+pub use areas::{detect_areas, format_area, format_infra, format_navigation, Area};
 pub use compact::format_compact;
 pub use conventions::format_conventions;
 pub use json::format_json;
