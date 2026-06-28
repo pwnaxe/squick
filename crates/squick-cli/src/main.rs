@@ -513,4 +513,43 @@ mod tests {
             assert!(!is_managed_artifact(name), "{name} must not be pruned");
         }
     }
+
+    #[test]
+    fn prune_removes_stale_managed_keeps_current_and_foreign() {
+        use std::collections::HashSet;
+        use std::time::{SystemTime, UNIX_EPOCH};
+
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!("squick-prune-{}-{nonce}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        for f in [
+            "conventions.md",
+            "area-frontend.md",
+            "area-stale.md",
+            "graph.txt",
+            ".gitkeep",
+            "NOTES.md",
+        ] {
+            std::fs::write(dir.join(f), "x").unwrap();
+        }
+
+        let written: HashSet<String> = ["conventions.md", "area-frontend.md"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
+        super::prune_managed(&dir, &written);
+
+        let exists = |n: &str| dir.join(n).exists();
+        assert!(exists("conventions.md"), "written file kept");
+        assert!(exists("area-frontend.md"), "written area kept");
+        assert!(!exists("area-stale.md"), "stale area pruned");
+        assert!(!exists("graph.txt"), "dropped format pruned");
+        assert!(exists(".gitkeep"), "foreign file kept");
+        assert!(exists("NOTES.md"), "foreign file kept");
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 }

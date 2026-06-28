@@ -84,6 +84,11 @@ Writes a small set of artifacts to `.squick/`:
   or API questions.
 - `context.md`: tiny index pointing at the two files above.
 
+Each scan keeps `.squick/` in sync: artifacts Squick no longer emits (for
+example an area file for a sub-project that moved) are removed, so the
+directory always reflects the current scan. Files you add yourself are left
+untouched.
+
 ### Monorepo output
 
 When more than one top-level sub-project is detected (manifests in distinct
