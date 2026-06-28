@@ -1,6 +1,6 @@
 [package]
 name = "squick-node"
-version = "2.0.0"
+version = "2.1.0"
 edition = "2021"
 license = "Apache-2.0"
 authors = ["Hub Horizon LLC"]
@@ -13,8 +13,8 @@ publish = false
 crate-type = ["cdylib"]
 
 [dependencies]
-squick-core = { path = "../../crates/squick-core", version = "=2.0.0" }
-squick-format = { path = "../../crates/squick-format", version = "=2.0.0" }
+squick-core = { path = "../../crates/squick-core", version = "=2.1.0" }
+squick-format = { path = "../../crates/squick-format", version = "=2.1.0" }
 napi = { version = "2", default-features = false, features = ["napi4", "serde-json"] }
 napi-derive = "2"
 

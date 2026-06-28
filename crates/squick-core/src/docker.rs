@@ -188,7 +188,11 @@ fn exec_or_list(rest: &str) -> Vec<String> {
 /// `ENV K=v K2=v2` and legacy `ENV K v` forms.
 fn env_keys_from(rest: &str) -> Vec<String> {
     if rest.contains('=') {
+        // `ENV K=v K2=v2`: a key is the part before `=` in any token that
+        // contains one. Tokens without `=` are spill-over from a quoted value
+        // (`ENV X="a b"`), not keys, so they are skipped.
         rest.split_whitespace()
+            .filter(|tok| tok.contains('='))
             .filter_map(|tok| tok.split('=').next())
             .filter(|k| !k.is_empty())
             .map(String::from)
@@ -552,6 +556,8 @@ mod tests {
         assert_eq!(env_keys_from("A=1 B=2"), vec!["A", "B"]);
         // Legacy `ENV KEY value` form: only the first token is the key.
         assert_eq!(env_keys_from("KEY some long value"), vec!["KEY"]);
+        // Quoted value with a space must not spill into a bogus key.
+        assert_eq!(env_keys_from(r#"X="a b""#), vec!["X"]);
     }
 
     #[test]

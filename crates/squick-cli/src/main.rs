@@ -51,7 +51,7 @@ enum Command {
         #[arg(long)]
         no_schemas: bool,
         /// Also write the tool-only artifacts (`context.txt`,
-        /// `context.ndjson`, `graph.txt`) alongside the chat-attachable ones.
+        /// `context.ndjson`) alongside the chat-attachable ones.
         #[arg(long)]
         full: bool,
         /// Split a monorepo into per-sub-project files (auto when >1 detected).
@@ -265,10 +265,6 @@ fn cmd_scan(
             squick_dir.join("context.ndjson"),
             squick_format::format_ndjson(&project),
         )?;
-        std::fs::write(
-            squick_dir.join("graph.txt"),
-            squick_format::format_triples(&project),
-        )?;
     }
 
     report_outputs(root, schemas_written, filters.full, &areas, infra.is_some());
@@ -307,12 +303,9 @@ fn report_outputs(
     if full {
         eprintln!("  context.txt     - compact columnar facts (AI-primary, tool-only)");
         eprintln!("  context.ndjson  - structured facts as JSON (tool-only)");
-        eprintln!("  graph.txt       - dependency triples (tool-only)");
     } else {
         eprintln!();
-        eprintln!(
-            "  Tip: re-run with --full to also emit context.txt, context.ndjson, and graph.txt"
-        );
+        eprintln!("  Tip: re-run with --full to also emit context.txt and context.ndjson");
         eprintln!("       for MCP servers and scripts.");
     }
 }

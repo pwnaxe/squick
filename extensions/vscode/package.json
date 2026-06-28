@@ -2,7 +2,7 @@
   "name": "squick-vscode",
   "displayName": "Squick",
   "description": "Pre-computed LLM context for AI coding agents",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "publisher": "horizon-llc",
   "license": "Apache-2.0",
   "author": "Hub Horizon LLC",

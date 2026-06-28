@@ -86,15 +86,18 @@ Writes a small set of artifacts to `.squick/`:
 
 ### Monorepo output
 
-When more than one sub-project is detected (manifests in distinct
+When more than one top-level sub-project is detected (manifests in distinct
 directories), Squick splits the output by area so an agent attaches only
 the file relevant to its question:
 
 - `context.md` becomes a **navigation** index routing each question to an area.
 - `area-<name>.md` per detected sub-project: its stack, libraries, API
   surface, and notable files (e.g. `area-frontend.md`, `area-backend.md`).
+  A manifest nested inside another (e.g. a plugin) folds into its parent
+  area rather than becoming a peer.
+- `area-other.md`: any files outside every sub-project, so nothing is dropped.
 - `infra.md`: cross-cutting Docker / Compose configuration.
-- `conventions.md` and the `--full` graph stay whole, so cross-area
+- `conventions.md` and the `--full` artifacts stay whole, so cross-area
   references are never severed.
 
 Polyglot single-root projects (several manifests in one directory) stay
@@ -111,7 +114,9 @@ This additionally writes the tool-only AI artifacts:
 - `context.txt` - compact columnar facts (densest, lowest token cost):
   one `@type` header per record kind, then TAB-delimited rows.
 - `context.ndjson` - the same facts as JSON, one per line.
-- `graph.txt` - subject-predicate-object triples.
+
+(RDF-style triples are still available on demand from the MCP
+`squick_get_graph` tool.)
 
 ## What gets extracted
 
@@ -151,7 +156,7 @@ squick scan [root]                One-shot scan into .squick/
   --include GLOB                  Repeatable. Only scan matching paths
   --exclude GLOB                  Repeatable. Skip matching paths
   --no-schemas                    Skip .squick/schemas.md
-  --full                          Also emit context.txt + context.ndjson + graph.txt
+  --full                          Also emit context.txt + context.ndjson
   --split auto|never              Split a monorepo per sub-project (default: auto)
 
 squick watch [root]               Re-scan on file save (same flags)

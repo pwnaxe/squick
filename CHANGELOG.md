@@ -4,20 +4,33 @@ All notable changes to this project are documented in this file. The
 format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [2.1.0] - 2026-06-28
 
 ### Added
 
 - Monorepo output splitting. When manifests are found in more than one
-  directory, `squick scan` emits a navigation `context.md`, one focused
-  `area-<name>.md` per detected sub-project (its stack, libraries, API
-  surface, and notable files), and a cross-cutting `infra.md` for Docker /
-  Compose. The global `conventions.md` and the `--full` graph stay whole, so
-  cross-area references are not severed. Polyglot single-root projects stay
-  single-file. New `--split auto|never` flag (default `auto`).
+  top-level directory, `squick scan` emits a navigation `context.md`, one
+  focused `area-<name>.md` per detected sub-project (its stack, libraries,
+  API surface, and notable files), an `area-other.md` for files outside any
+  sub-project, and a cross-cutting `infra.md` for Docker / Compose. A
+  manifest nested inside another folds into its parent area. The global
+  `conventions.md` and the `--full` artifacts stay whole, so cross-area
+  references are not severed. Polyglot single-root projects stay single-file.
+  New `--split auto|never` flag (default `auto`).
 - ROI benchmark counts Dockerfiles and Compose files in the source corpus,
   and tolerates files that cannot be copied (Windows reserved names, broken
   symlinks) so it can measure real repositories.
+
+### Changed
+
+- `--full` no longer writes `graph.txt`; the compact `context.txt` and
+  `context.ndjson` cover the same facts more densely. RDF-style triples
+  remain available on demand via the MCP `squick_get_graph` tool.
+
+### Fixed
+
+- `ENV KEY="a b"` no longer produces a bogus key from the quoted value's
+  trailing token.
 
 ## [2.0.0] - 2026-06-28
 

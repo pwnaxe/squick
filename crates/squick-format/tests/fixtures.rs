@@ -265,18 +265,44 @@ fn monorepo_splits_into_per_subproject_areas() {
     let areas = squick_format::detect_areas(&project);
 
     let titles: Vec<&str> = areas.iter().map(|a| a.title.as_str()).collect();
-    assert_eq!(areas.len(), 2, "areas: {titles:?}");
-    assert!(titles.contains(&"frontend"));
-    assert!(titles.contains(&"backend"));
+    assert!(titles.contains(&"frontend"), "areas: {titles:?}");
+    assert!(titles.contains(&"backend"), "areas: {titles:?}");
 
-    // Files land in the right area.
+    // A manifest nested inside backend (the audit plugin) folds into the
+    // backend area; it must not become a peer area of its own.
+    assert!(
+        !titles
+            .iter()
+            .any(|t| t.contains("plugins") || t.contains("audit")),
+        "nested manifest leaked as a peer area: {titles:?}"
+    );
     let backend = areas.iter().find(|a| a.title == "backend").unwrap();
+    assert_eq!(
+        backend.manifest_indices.len(),
+        2,
+        "backend area should aggregate its own + the nested plugin manifest"
+    );
     let backend_md = squick_format::format_area(&project, backend);
     assert!(backend_md.contains("FastAPI"), "backend: {backend_md}");
     assert!(backend_md.contains("/products"), "backend: {backend_md}");
+
     let frontend = areas.iter().find(|a| a.title == "frontend").unwrap();
     let frontend_md = squick_format::format_area(&project, frontend);
     assert!(frontend_md.contains("Next.js"), "frontend: {frontend_md}");
+
+    // Files outside every sub-project (scripts/) collect into `other`, so
+    // nothing is dropped from the navigation.
+    let other = areas
+        .iter()
+        .find(|a| a.title == "other")
+        .expect("an `other` area for orphan files");
+    assert!(
+        other
+            .file_indices
+            .iter()
+            .any(|&fi| project.files[fi].path.ends_with("seed.py")),
+        "scripts/seed.py should land in the `other` area"
+    );
 
     // Navigation routes to each area file.
     let nav = squick_format::format_navigation(&project, &areas, true, true);

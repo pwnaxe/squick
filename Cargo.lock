@@ -904,7 +904,7 @@ checksum = "0c790de23124f9ab44544d7ac05d60440adc586479ce501c1d6d7da3cd8c9cf5"
 
 [[package]]
 name = "squick-cli"
-version = "2.0.0"
+version = "2.1.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -922,7 +922,7 @@ dependencies = [
 
 [[package]]
 name = "squick-core"
-version = "2.0.0"
+version = "2.1.0"
 dependencies = [
  "anyhow",
  "ignore",
@@ -944,7 +944,7 @@ dependencies = [
 
 [[package]]
 name = "squick-dict"
-version = "2.0.0"
+version = "2.1.0"
 dependencies = [
  "anyhow",
  "once_cell",
@@ -958,7 +958,7 @@ dependencies = [
 
 [[package]]
 name = "squick-format"
-version = "2.0.0"
+version = "2.1.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -967,7 +967,7 @@ dependencies = [
 
 [[package]]
 name = "squick-watch"
-version = "2.0.0"
+version = "2.1.0"
 dependencies = [
  "anyhow",
  "notify",

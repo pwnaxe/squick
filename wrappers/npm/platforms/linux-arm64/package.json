@@ -1,6 +1,6 @@
 {
   "name": "@hubhorizonllc/squick-linux-arm64",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Squick binary for Linux aarch64.",
   "license": "Apache-2.0",
   "author": "Hub Horizon LLC",

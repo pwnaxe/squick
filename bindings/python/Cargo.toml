@@ -1,6 +1,6 @@
 [package]
 name = "squick-python"
-version = "2.0.0"
+version = "2.1.0"
 edition = "2021"
 license = "Apache-2.0"
 authors = ["Hub Horizon LLC"]
@@ -14,6 +14,6 @@ name = "squick"
 crate-type = ["cdylib"]
 
 [dependencies]
-squick-core = { path = "../../crates/squick-core", version = "=2.0.0" }
-squick-format = { path = "../../crates/squick-format", version = "=2.0.0" }
+squick-core = { path = "../../crates/squick-core", version = "=2.1.0" }
+squick-format = { path = "../../crates/squick-format", version = "=2.1.0" }
 pyo3 = { version = "0.22", features = ["extension-module", "abi3-py39"] }

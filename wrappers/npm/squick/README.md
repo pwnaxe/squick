@@ -35,7 +35,7 @@ A scan writes three small files into `.squick/`:
 - `schemas.md` - data schemas and endpoints. Attach for backend questions.
 - `context.md` - tiny index pointing at the above.
 
-Add `--full` to also emit `context.ndjson` and `graph.txt` (programmatic
+Add `--full` to also emit `context.txt` and `context.ndjson` (programmatic
 formats for MCP servers and scripts).
 
 ## Supported platforms

@@ -1,6 +1,6 @@
 {
   "name": "@hubhorizonllc/squick",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Pre-computed LLM context for AI coding agents.",
   "license": "Apache-2.0",
   "author": "Hub Horizon LLC",
@@ -29,10 +29,10 @@
     "node": ">=18"
   },
   "optionalDependencies": {
-    "@hubhorizonllc/squick-linux-x64": "2.0.0",
-    "@hubhorizonllc/squick-linux-arm64": "2.0.0",
-    "@hubhorizonllc/squick-darwin-x64": "2.0.0",
-    "@hubhorizonllc/squick-darwin-arm64": "2.0.0",
-    "@hubhorizonllc/squick-win32-x64": "2.0.0"
+    "@hubhorizonllc/squick-linux-x64": "2.1.0",
+    "@hubhorizonllc/squick-linux-arm64": "2.1.0",
+    "@hubhorizonllc/squick-darwin-x64": "2.1.0",
+    "@hubhorizonllc/squick-darwin-arm64": "2.1.0",
+    "@hubhorizonllc/squick-win32-x64": "2.1.0"
   }
 }

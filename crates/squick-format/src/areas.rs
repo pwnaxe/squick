@@ -13,7 +13,7 @@ use crate::conventions::{
     containerization_summary, endpoint_source_label, framework_stack, library_choices,
 };
 use squick_core::Project;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 use std::fmt::Write;
 use std::path::Path;
 
@@ -36,66 +36,99 @@ pub struct Area {
     pub file_indices: Vec<usize>,
 }
 
-/// Detects areas for a monorepo. An area is a distinct directory that holds
-/// at least one manifest. Returns an empty vector unless there are at least
-/// two such directories, which keeps the single-file output for both small
-/// repos and polyglot single-root projects (several manifests in one dir).
+/// Detects areas for a monorepo. An area is a top-level manifest directory: a
+/// directory holding at least one manifest that is not nested under another
+/// manifest directory. Manifests nested deeper (e.g. a plugin inside a backend)
+/// fold into their parent area instead of becoming peer areas. Files outside
+/// every area collect into a trailing `other` area so nothing is dropped.
+///
+/// Returns an empty vector unless there are at least two area roots, which
+/// keeps single-file output for small repos and for polyglot single-root
+/// projects (several manifests in one directory, or only nested ones).
 pub fn detect_areas(project: &Project) -> Vec<Area> {
     if project.manifests.len() < 2 {
         return Vec::new();
     }
 
     let root = &project.root;
-    // Group manifests by their directory, preserving a stable order.
-    let mut by_dir: BTreeMap<Vec<String>, Vec<usize>> = BTreeMap::new();
-    for (i, manifest) in project.manifests.iter().enumerate() {
-        let dir = manifest.path.parent().unwrap_or_else(|| Path::new(""));
-        let comps = components(dir.strip_prefix(root).unwrap_or(dir));
-        by_dir.entry(comps).or_default().push(i);
-    }
-    if by_dir.len() < 2 {
+    let manifest_dirs: Vec<Vec<String>> = project
+        .manifests
+        .iter()
+        .map(|m| {
+            let dir = m.path.parent().unwrap_or_else(|| Path::new(""));
+            components(dir.strip_prefix(root).unwrap_or(dir))
+        })
+        .collect();
+
+    // Area roots: distinct directories with no other manifest directory as a
+    // strict ancestor. BTreeSet iteration yields a stable, sorted order.
+    let distinct: BTreeSet<Vec<String>> = manifest_dirs.iter().cloned().collect();
+    let roots: Vec<Vec<String>> = distinct
+        .iter()
+        .filter(|d| {
+            !distinct
+                .iter()
+                .any(|e| e.len() < d.len() && is_prefix(e, d))
+        })
+        .cloned()
+        .collect();
+    if roots.len() < 2 {
         return Vec::new();
     }
 
-    let dirs: Vec<Vec<String>> = by_dir.keys().cloned().collect();
-    let mut areas: Vec<Area> = Vec::with_capacity(dirs.len());
     let mut used: BTreeSet<String> = BTreeSet::new();
-    for (rel, manifest_indices) in &by_dir {
-        let rel_dir = if rel.is_empty() {
-            "(root)".to_string()
-        } else {
-            rel.join("/")
-        };
-        let first_name = project.manifests[manifest_indices[0]].name.as_deref();
-        let slug = unique_slug(base_slug(&rel_dir, first_name), &mut used);
-        let title = if rel.is_empty() {
-            "root".to_string()
-        } else {
-            rel_dir.clone()
-        };
-        areas.push(Area {
-            slug,
-            title,
-            rel_dir,
-            manifest_indices: manifest_indices.clone(),
-            file_indices: Vec::new(),
-        });
-    }
+    let mut areas: Vec<Area> = roots
+        .iter()
+        .map(|rel| {
+            let rel_dir = if rel.is_empty() {
+                "(root)".to_string()
+            } else {
+                rel.join("/")
+            };
+            // Every manifest under this root (the root itself plus nested ones).
+            let manifest_indices: Vec<usize> = manifest_dirs
+                .iter()
+                .enumerate()
+                .filter(|(_, d)| is_prefix(rel, d))
+                .map(|(i, _)| i)
+                .collect();
+            let first_name = manifest_indices
+                .first()
+                .and_then(|&i| project.manifests[i].name.as_deref());
+            let slug = unique_slug(base_slug(&rel_dir, first_name), &mut used);
+            let title = if rel.is_empty() {
+                "root".to_string()
+            } else {
+                rel_dir.clone()
+            };
+            Area {
+                slug,
+                title,
+                rel_dir,
+                manifest_indices,
+                file_indices: Vec::new(),
+            }
+        })
+        .collect();
 
+    // Assign each file to its area root; collect the rest for the `other` area.
+    let mut orphans: Vec<usize> = Vec::new();
     for (fi, file) in project.files.iter().enumerate() {
         let rel = components(file.path.strip_prefix(root).unwrap_or(&file.path));
-        let mut best: Option<(usize, usize)> = None;
-        for (ai, dir) in dirs.iter().enumerate() {
-            if is_prefix(dir, &rel) {
-                let depth = dir.len();
-                if best.is_none_or(|(_, b)| depth > b) {
-                    best = Some((ai, depth));
-                }
-            }
+        // Roots are non-nested, so at most one is a prefix of the file.
+        match roots.iter().position(|r| is_prefix(r, &rel)) {
+            Some(ai) => areas[ai].file_indices.push(fi),
+            None => orphans.push(fi),
         }
-        if let Some((ai, _)) = best {
-            areas[ai].file_indices.push(fi);
-        }
+    }
+    if !orphans.is_empty() {
+        areas.push(Area {
+            slug: unique_slug("other".to_string(), &mut used),
+            title: "other".to_string(),
+            rel_dir: "(unassigned)".to_string(),
+            manifest_indices: Vec::new(),
+            file_indices: orphans,
+        });
     }
 
     areas
@@ -182,7 +215,7 @@ pub fn format_navigation(
     let _ = writeln!(out, "\n## Full structured graph (`--full`)");
     let _ = writeln!(
         out,
-        "- `context.txt`, `context.ndjson`, `graph.txt` - one graph over the \
+        "- `context.txt`, `context.ndjson` - one structured graph over the \
          whole repo; cross-area references are kept intact here."
     );
 
@@ -194,19 +227,22 @@ pub fn format_navigation(
 pub fn format_area(project: &Project, area: &Area) -> String {
     let mut out = String::with_capacity(1024);
     let _ = writeln!(out, "# Squick area: {}", area.title);
-    let identity = area
-        .manifest_indices
-        .iter()
-        .map(|&mi| {
-            let m = &project.manifests[mi];
-            match (&m.name, &m.version) {
-                (Some(n), Some(v)) => format!("{n}@{v}"),
-                (Some(n), None) => n.clone(),
-                _ => "unnamed".to_string(),
-            }
-        })
-        .collect::<Vec<_>>()
-        .join(", ");
+    let identity = if area.manifest_indices.is_empty() {
+        "(no manifest)".to_string()
+    } else {
+        area.manifest_indices
+            .iter()
+            .map(|&mi| {
+                let m = &project.manifests[mi];
+                match (&m.name, &m.version) {
+                    (Some(n), Some(v)) => format!("{n}@{v}"),
+                    (Some(n), None) => n.clone(),
+                    _ => "unnamed".to_string(),
+                }
+            })
+            .collect::<Vec<_>>()
+            .join(", ")
+    };
     let _ = writeln!(
         out,
         "\nPath: `{}` | {identity} | {} file(s)",

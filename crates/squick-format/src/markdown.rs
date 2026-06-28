@@ -48,10 +48,6 @@ pub fn format_markdown(project: &Project) -> String {
     );
     let _ = writeln!(out, "- `context.txt` - compact columnar facts (AI-primary): one `@type` header per record kind, then TAB-delimited rows. Densest format; lowest token cost.");
     let _ = writeln!(out, "- `context.ndjson` - the same facts as JSON, one per line (project, file, symbol, reference, endpoint, schema, container).");
-    let _ = writeln!(
-        out,
-        "- `graph.txt` - subject-predicate-object triples for graph traversal."
-    );
 
     out
 }

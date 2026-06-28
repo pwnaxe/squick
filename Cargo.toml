@@ -17,7 +17,7 @@ exclude = [
 ]
 
 [workspace.package]
-version = "2.0.0"
+version = "2.1.0"
 edition = "2021"
 license = "Apache-2.0"
 authors = ["Hub Horizon LLC"]
@@ -26,10 +26,10 @@ homepage = "https://pixelhorizon.dev"
 rust-version = "1.88"
 
 [workspace.dependencies]
-squick-core = { path = "crates/squick-core", version = "=2.0.0" }
-squick-dict = { path = "crates/squick-dict", version = "=2.0.0" }
-squick-format = { path = "crates/squick-format", version = "=2.0.0" }
-squick-watch = { path = "crates/squick-watch", version = "=2.0.0" }
+squick-core = { path = "crates/squick-core", version = "=2.1.0" }
+squick-dict = { path = "crates/squick-dict", version = "=2.1.0" }
+squick-format = { path = "crates/squick-format", version = "=2.1.0" }
+squick-watch = { path = "crates/squick-watch", version = "=2.1.0" }
 
 anyhow = "1"
 thiserror = "1"
