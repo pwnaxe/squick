@@ -8,6 +8,7 @@ use clap::{Parser, Subcommand, ValueEnum};
 use include_dir::{include_dir, Dir};
 use squick_core::{Project, ScanOptions, Scanner};
 use squick_dict::{load_directory, load_str, Dictionary, Matcher};
+use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
 const DEFAULT_DICTIONARY_DIR: &str = "dictionaries";
@@ -210,14 +211,18 @@ fn cmd_scan(
     // Default: the chat-attachable markdown artifact set in `.squick/`.
     let squick_dir = root.join(".squick");
     std::fs::create_dir_all(&squick_dir)?;
+    let mut written: HashSet<String> = HashSet::new();
+
     std::fs::write(
         squick_dir.join("conventions.md"),
         squick_format::format_conventions(&project),
     )?;
+    written.insert("conventions.md".to_string());
 
     let schemas_written = if !filters.no_schemas {
         if let Some(schemas) = squick_format::format_schemas(&project) {
             std::fs::write(squick_dir.join("schemas.md"), schemas)?;
+            written.insert("schemas.md".to_string());
             true
         } else {
             false
@@ -246,29 +251,72 @@ fn cmd_scan(
             squick_format::format_navigation(&project, &areas, infra.is_some(), schemas_written),
         )?;
         for area in &areas {
+            let name = format!("area-{}.md", area.slug);
             std::fs::write(
-                squick_dir.join(format!("area-{}.md", area.slug)),
+                squick_dir.join(&name),
                 squick_format::format_area(&project, area),
             )?;
+            written.insert(name);
         }
         if let Some(infra) = &infra {
             std::fs::write(squick_dir.join("infra.md"), infra)?;
+            written.insert("infra.md".to_string());
         }
     }
+    written.insert("context.md".to_string());
 
     if filters.full {
         std::fs::write(
             squick_dir.join("context.txt"),
             squick_format::format_compact(&project),
         )?;
+        written.insert("context.txt".to_string());
         std::fs::write(
             squick_dir.join("context.ndjson"),
             squick_format::format_ndjson(&project),
         )?;
+        written.insert("context.ndjson".to_string());
     }
+
+    // Remove Squick-managed artifacts from earlier scans (renamed areas,
+    // formats no longer emitted) that were not written this run.
+    prune_managed(&squick_dir, &written);
 
     report_outputs(root, schemas_written, filters.full, &areas, infra.is_some());
     Ok(())
+}
+
+/// Deletes Squick-managed files in `.squick/` that were not written this run,
+/// so stale area files and dropped formats do not accumulate. Files Squick
+/// does not own (e.g. `.gitkeep`) are left untouched.
+fn prune_managed(dir: &Path, written: &HashSet<String>) {
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        let file_name = entry.file_name();
+        let Some(name) = file_name.to_str() else {
+            continue;
+        };
+        if written.contains(name) || !is_managed_artifact(name) {
+            continue;
+        }
+        let _ = std::fs::remove_file(entry.path());
+    }
+}
+
+fn is_managed_artifact(name: &str) -> bool {
+    const MANAGED: &[&str] = &[
+        "conventions.md",
+        "schemas.md",
+        "context.md",
+        "context.json",
+        "context.txt",
+        "context.ndjson",
+        "graph.txt",
+        "infra.md",
+    ];
+    MANAGED.contains(&name) || (name.starts_with("area-") && name.ends_with(".md"))
 }
 
 fn report_outputs(
@@ -429,4 +477,40 @@ fn default_dictionary_dir() -> Option<PathBuf> {
         }
     }
     None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_managed_artifact;
+
+    #[test]
+    fn recognizes_managed_artifacts() {
+        for name in [
+            "conventions.md",
+            "schemas.md",
+            "context.md",
+            "context.json",
+            "context.txt",
+            "context.ndjson",
+            "graph.txt",
+            "infra.md",
+            "area-frontend.md",
+            "area-backend-strapi.md",
+        ] {
+            assert!(is_managed_artifact(name), "{name} should be managed");
+        }
+    }
+
+    #[test]
+    fn leaves_foreign_files_alone() {
+        for name in [
+            ".gitkeep",
+            "notes.md",
+            "README.md",
+            "area-frontend.txt",
+            "custom.json",
+        ] {
+            assert!(!is_managed_artifact(name), "{name} must not be pruned");
+        }
+    }
 }

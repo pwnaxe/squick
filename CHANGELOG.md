@@ -4,6 +4,16 @@ All notable changes to this project are documented in this file. The
 format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.1.1] - 2026-06-28
+
+### Fixed
+
+- `squick scan` now prunes its own stale artifacts from `.squick/`. Earlier
+  scans left orphan files behind (renamed area files when a sub-project
+  moved, `graph.txt` after it was dropped, `context.txt`/`context.ndjson`
+  from a prior `--full` run), cluttering the directory and misleading
+  readers. Files Squick does not own (e.g. `.gitkeep`) are left untouched.
+
 ## [2.1.0] - 2026-06-28
 
 ### Added
