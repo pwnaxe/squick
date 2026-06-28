@@ -23,10 +23,27 @@ import sys
 import tempfile
 from pathlib import Path
 
-# Files an agent reads to understand structure: the languages Squick parses
-# plus the manifests it keys off. This is the corpus Squick replaces.
+# Files an agent reads to understand structure: the languages Squick parses,
+# the manifests it keys off, and the container files it analyzes. This is the
+# corpus Squick replaces.
 SOURCE_EXTS = {".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".py", ".php"}
 MANIFEST_NAMES = {"package.json", "pyproject.toml", "composer.json", "schema.json"}
+
+
+def is_container_file(name: str) -> bool:
+    """Mirror of squick-core's Dockerfile/Compose detection."""
+    low = name.lower()
+    if low.endswith((".md", ".markdown", ".txt")):
+        return False
+    if low in {"dockerfile", "containerfile"}:
+        return True
+    if low.startswith("dockerfile.") or low.endswith(".dockerfile"):
+        return True
+    if low.endswith((".yml", ".yaml")) and (
+        low.startswith("docker-compose") or low.startswith("compose.")
+    ):
+        return True
+    return False
 
 # Never counted or copied: build output, deps, VCS, prior artifacts.
 SKIP_DIRS = {
@@ -61,19 +78,34 @@ def iter_source_files(root: Path):
             continue
         if any(part in SKIP_DIRS for part in path.relative_to(root).parts):
             continue
-        if path.suffix in SOURCE_EXTS or path.name in MANIFEST_NAMES:
+        if (
+            path.suffix in SOURCE_EXTS
+            or path.name in MANIFEST_NAMES
+            or is_container_file(path.name)
+        ):
             yield path
 
 
 def copy_clean(src: Path, dst: Path) -> None:
     """Copy a project into a temp dir, skipping heavy/irrelevant trees so a
-    scan never mutates the real repo and never drags in target/ or deps."""
-    shutil.copytree(
-        src,
-        dst,
-        ignore=shutil.ignore_patterns(*SKIP_DIRS),
-        dirs_exist_ok=True,
-    )
+    scan never mutates the real repo and never drags in target/ or deps.
+
+    Tolerates files that cannot be copied (Windows reserved names such as
+    `nul`, broken symlinks, permission errors); they are never source, so a
+    partial copy is fine for measurement."""
+    try:
+        shutil.copytree(
+            src,
+            dst,
+            ignore=shutil.ignore_patterns(*SKIP_DIRS),
+            dirs_exist_ok=True,
+            ignore_dangling_symlinks=True,
+        )
+    except shutil.Error as e:
+        print(
+            f"warning: skipped {len(e.args[0])} uncopyable file(s) in {src.name}",
+            file=sys.stderr,
+        )
 
 
 def run_squick(binary: str, root: Path) -> None:

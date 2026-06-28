@@ -25,14 +25,15 @@ agent reads that instead of re-deriving the project structure each turn.
 
 ## Measured impact
 
-On a production Next.js + Python monorepo (845 source files), the structural
-corpus an agent reads to orient itself shrinks from ~1.85M tokens to ~4.7K:
+On a production Next.js + Python monorepo (863 source files, including its
+Dockerfiles and Compose stack), the structural corpus an agent reads to
+orient itself shrinks from ~1.87M tokens to ~4.9K:
 
 | Layer | Source files | Source tokens | Squick tokens | Reduction |
 | ----- | -----------: | ------------: | ------------: | --------: |
-| Next.js frontend | 708 | 1,813,309 | 927 | 99.9% |
-| Python backend | 137 | 40,748 | 3,800 | 90.7% |
-| **Combined** | **845** | **1,854,057** | **4,727** | **99.7%** |
+| Next.js frontend | 728 | 1,826,143 | 1,123 | 99.9% |
+| Python backend | 135 | 41,045 | 3,791 | 90.8% |
+| **Combined** | **863** | **1,867,188** | **4,914** | **99.7%** |
 
 That is the recurring orientation tax Squick removes, paid on every prompt
 otherwise. The benefit scales with repository size. Reproduce these numbers

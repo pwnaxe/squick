@@ -12,9 +12,11 @@ For each target project the script:
    `target`, `vendor`, `.git`, build output, and any prior `.squick/`. The
    real repo is never touched.
 2. Counts tokens across the source corpus an agent would read to learn the
-   layout: every `.ts/.tsx/.js/.jsx/.mjs/.cjs/.py/.php` file plus the
-   manifests Squick keys off (`package.json`, `pyproject.toml`,
-   `composer.json`, Strapi `schema.json`).
+   layout: every `.ts/.tsx/.js/.jsx/.mjs/.cjs/.py/.php` file, the manifests
+   Squick keys off (`package.json`, `pyproject.toml`, `composer.json`,
+   Strapi `schema.json`), and the container files it analyzes (`Dockerfile`,
+   `Dockerfile.*`, `*.dockerfile`, `Containerfile`, `docker-compose*.yml`,
+   `compose*.yml`).
 3. Runs `squick scan` and counts tokens across the artifacts the agent
    actually reads: `conventions.md`, `schemas.md`, `context.md`.
 4. Reports the reduction.
@@ -51,18 +53,23 @@ corpus. Real codebases invert that completely.
 
 ## Reference results
 
-Bundled fixtures (reproducible by anyone, chars/4 estimate). These are
-deliberately tiny and show the floor, not the ceiling:
-
-| Project | Source files | Source tokens | Squick tokens | Reduction |
-| ------- | -----------: | ------------: | ------------: | --------: |
-| multi-framework | 8 | 702 | 682 | 2.8% |
-| sample | 4 | 393 | 358 | 8.9% |
-
-A production Next.js + Python monorepo (845 source files), chars/4 estimate:
+A production Next.js + Python monorepo (863 source files), chars/4 estimate.
+Squick 2.0.0 also condenses the repo's Dockerfiles and Compose stack into
+`conventions.md`:
 
 | Layer | Source files | Source tokens | Squick tokens | Reduction |
 | ----- | -----------: | ------------: | ------------: | --------: |
-| Next.js frontend | 708 | 1,813,309 | 927 | 99.9% |
-| Python backend | 137 | 40,748 | 3,800 | 90.7% |
-| **Combined** | **845** | **1,854,057** | **4,727** | **99.7%** |
+| Next.js frontend | 728 | 1,826,143 | 1,123 | 99.9% |
+| Python backend | 135 | 41,045 | 3,791 | 90.8% |
+| **Combined** | **863** | **1,867,188** | **4,914** | **99.7%** |
+
+The bundled fixtures (`fixtures/multi-framework`, `fixtures/sample`) are
+deliberately tiny and dense. They exist to validate the scan-to-artifact
+pipeline, not to demonstrate compression: below a few dozen files the fixed
+preamble in `conventions.md` outweighs the source it summarizes, so the
+ratio is flat or negative. Compression shows on real codebases, so run it on
+one of yours:
+
+```bash
+python benches/roi/measure.py /path/to/your/repo
+```
