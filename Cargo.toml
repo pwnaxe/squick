@@ -32,28 +32,28 @@ squick-format = { path = "crates/squick-format", version = "=2.1.1" }
 squick-watch = { path = "crates/squick-watch", version = "=2.1.1" }
 
 anyhow = "1"
-thiserror = "1"
+thiserror = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_yaml_ng = "0.10"
-toml = "0.8"
+toml = "1.1"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "io-std", "sync"] }
-rmcp = { version = "0.16", features = ["server", "transport-io", "macros", "schemars"] }
+rmcp = { version = "2.0", features = ["server", "transport-io", "macros", "schemars"] }
 schemars = "1"
 walkdir = "2"
 ignore = "0.4"
 regex = "1"
 once_cell = "1"
-petgraph = "0.6"
+petgraph = "0.8"
 clap = { version = "4", features = ["derive"] }
 include_dir = "0.7"
-notify = "6"
-notify-debouncer-mini = "0.4"
+notify = "8"
+notify-debouncer-mini = "0.7"
 tree-sitter = "0.22"
-tree-sitter-typescript = "0.21"
-tree-sitter-javascript = "0.21"
-tree-sitter-python = "0.21"
-tree-sitter-php = "0.22"
+tree-sitter-typescript = "0.23"
+tree-sitter-javascript = "0.25"
+tree-sitter-python = "0.25"
+tree-sitter-php = "0.24"
 
 [profile.release]
 lto = "thin"
