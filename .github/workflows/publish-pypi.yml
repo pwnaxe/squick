@@ -116,7 +116,7 @@ jobs:
                      squick-*-py3-none-any.whl
           ls -la
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: wheel-${{ matrix.platform.plat_tag }}
           path: wrappers/pypi/dist/*.whl
