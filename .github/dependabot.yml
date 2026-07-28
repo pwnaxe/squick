@@ -15,13 +15,22 @@ updates:
     directory: "/"
     schedule:
       interval: weekly
+    groups:
+      github-actions:
+        patterns: ["*"]
 
   - package-ecosystem: npm
     directory: "/extensions/vscode"
     schedule:
       interval: weekly
+    groups:
+      vscode-npm:
+        patterns: ["*"]
 
   - package-ecosystem: npm
     directory: "/bindings/node"
     schedule:
       interval: weekly
+    groups:
+      node-npm:
+        patterns: ["*"]
