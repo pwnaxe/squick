@@ -7,10 +7,10 @@
 
 use anyhow::Result;
 use rmcp::{
-    handler::server::{router::tool::ToolRouter, wrapper::Parameters},
+    handler::server::wrapper::Parameters,
     model::{
-        CallToolResult, Content, ErrorData, Implementation, ProtocolVersion, ServerCapabilities,
-        ServerInfo,
+        CallToolResult, ContentBlock, ErrorData, Implementation, ProtocolVersion,
+        ServerCapabilities, ServerInfo,
     },
     schemars,
     service::ServiceExt,
@@ -39,7 +39,6 @@ pub fn run(dict_dir: Option<PathBuf>) -> Result<()> {
 #[derive(Clone)]
 pub struct SquickServer {
     dict_dir: Arc<Option<PathBuf>>,
-    tool_router: ToolRouter<Self>,
 }
 
 #[derive(Debug, Deserialize, Serialize, schemars::JsonSchema)]
@@ -61,7 +60,6 @@ impl SquickServer {
     pub fn new(dict_dir: Option<PathBuf>) -> Self {
         Self {
             dict_dir: Arc::new(dict_dir),
-            tool_router: Self::tool_router(),
         }
     }
 
@@ -73,7 +71,7 @@ impl SquickServer {
         Parameters(args): Parameters<ScanArgs>,
     ) -> Result<CallToolResult, ErrorData> {
         let project = self.scan_project(&args.root)?;
-        Ok(CallToolResult::success(vec![Content::text(
+        Ok(CallToolResult::success(vec![ContentBlock::text(
             squick_format::format_conventions(&project),
         )]))
     }
@@ -86,7 +84,7 @@ impl SquickServer {
         Parameters(args): Parameters<ScanArgs>,
     ) -> Result<CallToolResult, ErrorData> {
         let project = self.scan_project(&args.root)?;
-        Ok(CallToolResult::success(vec![Content::text(
+        Ok(CallToolResult::success(vec![ContentBlock::text(
             squick_format::format_ndjson(&project),
         )]))
     }
@@ -99,7 +97,7 @@ impl SquickServer {
         Parameters(args): Parameters<ScanArgs>,
     ) -> Result<CallToolResult, ErrorData> {
         let project = self.scan_project(&args.root)?;
-        Ok(CallToolResult::success(vec![Content::text(
+        Ok(CallToolResult::success(vec![ContentBlock::text(
             squick_format::format_triples(&project),
         )]))
     }
@@ -112,7 +110,7 @@ impl SquickServer {
         Parameters(args): Parameters<ScanArgs>,
     ) -> Result<CallToolResult, ErrorData> {
         let project = self.scan_project(&args.root)?;
-        Ok(CallToolResult::success(vec![Content::text(
+        Ok(CallToolResult::success(vec![ContentBlock::text(
             squick_format::format_conventions(&project),
         )]))
     }
@@ -141,7 +139,7 @@ impl SquickServer {
             .collect();
         let payload = serde_json::to_string_pretty(&endpoints)
             .map_err(|e| ErrorData::internal_error(e.to_string(), None))?;
-        Ok(CallToolResult::success(vec![Content::text(payload)]))
+        Ok(CallToolResult::success(vec![ContentBlock::text(payload)]))
     }
 
     #[tool(
@@ -154,7 +152,7 @@ impl SquickServer {
         let project = self.scan_project(&args.root)?;
         let payload = serde_json::to_string_pretty(&project.strapi_schemas)
             .map_err(|e| ErrorData::internal_error(e.to_string(), None))?;
-        Ok(CallToolResult::success(vec![Content::text(payload)]))
+        Ok(CallToolResult::success(vec![ContentBlock::text(payload)]))
     }
 
     #[tool(
@@ -182,7 +180,7 @@ impl SquickServer {
             docker: Vec::new(),
         };
         let markdown = squick_format::format_markdown(&single);
-        Ok(CallToolResult::success(vec![Content::text(markdown)]))
+        Ok(CallToolResult::success(vec![ContentBlock::text(markdown)]))
     }
 
     fn scan_project(&self, root: &str) -> Result<Project, ErrorData> {
@@ -207,21 +205,14 @@ impl SquickServer {
 #[tool_handler]
 impl ServerHandler for SquickServer {
     fn get_info(&self) -> ServerInfo {
-        ServerInfo {
-            protocol_version: ProtocolVersion::V_2024_11_05,
-            capabilities: ServerCapabilities::builder().enable_tools().build(),
-            server_info: Implementation {
-                name: "squick".to_string(),
-                version: env!("CARGO_PKG_VERSION").to_string(),
-                ..Default::default()
-            },
-            instructions: Some(
+        ServerInfo::new(ServerCapabilities::builder().enable_tools().build())
+            .with_protocol_version(ProtocolVersion::V_2024_11_05)
+            .with_server_info(Implementation::new("squick", env!("CARGO_PKG_VERSION")))
+            .with_instructions(
                 "Squick MCP server. Use squick_scan for a full project map, \
                  squick_get_endpoints / squick_get_schemas for targeted data, \
-                 and squick_get_file_context when you already know the file."
-                    .to_string(),
-            ),
-        }
+                 and squick_get_file_context when you already know the file.",
+            )
     }
 }
 

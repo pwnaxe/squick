@@ -41,11 +41,11 @@ impl Language {
 
     pub fn ts_language(self) -> tree_sitter::Language {
         match self {
-            Language::TypeScript => tree_sitter_typescript::language_typescript(),
-            Language::Tsx => tree_sitter_typescript::language_tsx(),
-            Language::JavaScript | Language::Jsx => tree_sitter_javascript::language(),
-            Language::Python => tree_sitter_python::language(),
-            Language::Php => tree_sitter_php::language_php(),
+            Language::TypeScript => tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into(),
+            Language::Tsx => tree_sitter_typescript::LANGUAGE_TSX.into(),
+            Language::JavaScript | Language::Jsx => tree_sitter_javascript::LANGUAGE.into(),
+            Language::Python => tree_sitter_python::LANGUAGE.into(),
+            Language::Php => tree_sitter_php::LANGUAGE_PHP.into(),
         }
     }
 }
