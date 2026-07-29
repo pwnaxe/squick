@@ -1,9 +1,10 @@
 // Copyright 2026 Hub Horizon LLC
 // SPDX-License-Identifier: Apache-2.0
 
-//! MCP server (stdio transport) backed by `rmcp`. Exposes four tools:
-//! `squick_scan`, `squick_get_endpoints`, `squick_get_schemas`,
-//! `squick_get_file_context`.
+//! MCP server (stdio transport) backed by `rmcp`. Exposes `squick_scan`,
+//! `squick_get_ndjson`, `squick_get_graph`, `squick_get_conventions`,
+//! `squick_get_endpoints`, `squick_get_schemas`, `squick_get_openapi`,
+//! `squick_get_graphql`, and `squick_get_file_context`.
 
 use anyhow::Result;
 use rmcp::{
@@ -156,6 +157,32 @@ impl SquickServer {
     }
 
     #[tool(
+        description = "Return OpenAPI/Swagger specs detected in a project as JSON: title, version, operations (method, path, operationId, summary), and component schemas (fields, types, required)."
+    )]
+    async fn squick_get_openapi(
+        &self,
+        Parameters(args): Parameters<ScanArgs>,
+    ) -> Result<CallToolResult, ErrorData> {
+        let project = self.scan_project(&args.root)?;
+        let payload = serde_json::to_string_pretty(&project.openapi)
+            .map_err(|e| ErrorData::internal_error(e.to_string(), None))?;
+        Ok(CallToolResult::success(vec![ContentBlock::text(payload)]))
+    }
+
+    #[tool(
+        description = "Return GraphQL SDL schemas detected in a project as JSON: type/input/interface/union/enum/scalar declarations with their fields, plus the Query/Mutation/Subscription root field names as the API's operations."
+    )]
+    async fn squick_get_graphql(
+        &self,
+        Parameters(args): Parameters<ScanArgs>,
+    ) -> Result<CallToolResult, ErrorData> {
+        let project = self.scan_project(&args.root)?;
+        let payload = serde_json::to_string_pretty(&project.graphql)
+            .map_err(|e| ErrorData::internal_error(e.to_string(), None))?;
+        Ok(CallToolResult::success(vec![ContentBlock::text(payload)]))
+    }
+
+    #[tool(
         description = "Return structural context for a single file as markdown. Cheaper than a full project scan when the agent already knows which file it cares about."
     )]
     async fn squick_get_file_context(
@@ -178,6 +205,8 @@ impl SquickServer {
             manifests: Vec::new(),
             strapi_schemas: Vec::new(),
             docker: Vec::new(),
+            openapi: Vec::new(),
+            graphql: Vec::new(),
         };
         let markdown = squick_format::format_markdown(&single);
         Ok(CallToolResult::success(vec![ContentBlock::text(markdown)]))

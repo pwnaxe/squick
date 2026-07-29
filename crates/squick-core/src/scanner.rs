@@ -3,8 +3,10 @@
 
 use crate::docker;
 use crate::error::{Error, Result};
+use crate::graphql;
 use crate::language::Language;
 use crate::manifest;
+use crate::openapi;
 use crate::parser::FileParser;
 use crate::resolve::resolve_references;
 use crate::types::{FileSummary, Project};
@@ -96,6 +98,10 @@ impl Scanner {
         project.strapi_schemas.sort_by(|a, b| a.path.cmp(&b.path));
         docker::scan(&mut project, self.options.respect_ignore);
         project.docker.sort_by(|a, b| a.path.cmp(&b.path));
+        openapi::scan(&mut project, self.options.respect_ignore);
+        project.openapi.sort_by(|a, b| a.path.cmp(&b.path));
+        graphql::scan(&mut project, self.options.respect_ignore);
+        project.graphql.sort_by(|a, b| a.path.cmp(&b.path));
         resolve_references(&mut project);
 
         Ok(project)

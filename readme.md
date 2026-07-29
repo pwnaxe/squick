@@ -128,20 +128,21 @@ This additionally writes the tool-only AI artifacts:
 - **Structure** (Tree-sitter): symbols, imports, JSX components, doc comments, references.
 - **Heuristics**: function-name verbs, suffixes, Python dunders, framework markers.
 - **Dictionaries** (YAML): conventional routes, file roles, framework affinity.
-- **Manifests**: `package.json`, `pyproject.toml`, `composer.json` (identity, dependencies, scripts, framework detection).
+- **Manifests**: `package.json`, `pyproject.toml`, `composer.json`, `Cargo.toml` (identity, dependencies, scripts, framework detection).
 - **Endpoints**: FastAPI/Flask decorators, Django urlpatterns, Express member-calls, Next.js App Router file layout, Laravel route facades, Symfony route attributes.
 - **Data schemas**: Strapi content types (kind, names, attributes, relations).
+- **API specs**: OpenAPI/Swagger (paths as operations, `components`/`definitions` as schemas) and GraphQL SDL schemas (`type`/`input`/`interface`/`union`/`enum`/`scalar` declarations, `Query`/`Mutation`/`Subscription` root fields).
 - **Containers**: `Dockerfile` base images, build stages, exposed ports; `docker-compose` services, images, ports, and `depends_on` links. Backing services (Postgres, Redis, etc.) and runtime base images surface as stack tags.
 
 ## Supported languages
 
-TypeScript / TSX / JavaScript / JSX / Python / PHP.
+TypeScript / TSX / JavaScript / JSX / Python / PHP / Rust.
 
 ## Supported frameworks (out of the box)
 
 Backend: Strapi, Django, Django REST Framework, FastAPI, Flask, Express,
 Koa, Fastify, NestJS, Sanity, Payload CMS, WordPress (file roles), Laravel,
-Symfony.
+Symfony, Axum, Actix Web, Rocket, Warp, Tide, Tonic.
 
 Frontend: Next.js (App Router + Pages Router), React, Tailwind.
 
@@ -181,6 +182,8 @@ Tools exposed:
 - `squick_scan(root)`: the conventions summary (most useful default).
 - `squick_get_conventions(root)`: explicit conventions content.
 - `squick_get_schemas(root)`: data schemas as JSON.
+- `squick_get_openapi(root)`: OpenAPI/Swagger specs as JSON.
+- `squick_get_graphql(root)`: GraphQL SDL schemas as JSON.
 - `squick_get_endpoints(root)`: HTTP endpoints as JSON.
 - `squick_get_file_context(root, file)`: context for one file only.
 - `squick_get_ndjson(root)`: full project context as NDJSON.

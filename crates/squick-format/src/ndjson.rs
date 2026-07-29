@@ -8,8 +8,8 @@
 use serde::Serialize;
 use serde_json::json;
 use squick_core::{
-    DockerArtifact, DockerKind, Endpoint, FileSummary, Manifest, Project, SemanticTag,
-    StrapiSchema, Symbol,
+    DockerArtifact, DockerKind, Endpoint, FileSummary, GraphqlArtifact, GraphqlTypeKind, Manifest,
+    OpenApiArtifact, Project, SemanticTag, StrapiSchema, Symbol,
 };
 use std::fmt::Write;
 
@@ -55,6 +55,12 @@ pub fn format_ndjson(project: &Project) -> String {
     for (i, artifact) in project.docker.iter().enumerate() {
         push_docker(&mut out, i, artifact, &project.root);
     }
+    for (i, artifact) in project.openapi.iter().enumerate() {
+        push_openapi(&mut out, i, artifact, &project.root);
+    }
+    for (i, artifact) in project.graphql.iter().enumerate() {
+        push_graphql(&mut out, i, artifact, &project.root);
+    }
 
     out
 }
@@ -69,6 +75,8 @@ struct ProjectFact<'a> {
     endpoints: usize,
     schemas: usize,
     containers: usize,
+    openapi_specs: usize,
+    graphql_schemas: usize,
     frameworks: Vec<&'a str>,
 }
 
@@ -99,6 +107,8 @@ fn push_project(out: &mut String, project: &Project) {
         endpoints,
         schemas: project.strapi_schemas.len(),
         containers: project.docker.len(),
+        openapi_specs: project.openapi.len(),
+        graphql_schemas: project.graphql.len(),
         frameworks,
     };
     let _ = writeln!(out, "{}", serde_json::to_string(&fact).unwrap());
@@ -158,6 +168,88 @@ fn push_docker(out: &mut String, idx: usize, artifact: &DockerArtifact, root: &s
     let _ = writeln!(out, "{}", serde_json::to_string(&fact).unwrap());
 }
 
+fn push_openapi(out: &mut String, idx: usize, artifact: &OpenApiArtifact, root: &std::path::Path) {
+    let path = artifact
+        .path
+        .strip_prefix(root)
+        .unwrap_or(&artifact.path)
+        .display()
+        .to_string();
+    let operations: Vec<_> = artifact
+        .operations
+        .iter()
+        .map(|op| {
+            json!({
+                "method": op.method.as_str(),
+                "path": op.path,
+                "op_id": op.operation_id,
+                "summary": op.summary,
+            })
+        })
+        .collect();
+    let schemas: Vec<_> = artifact
+        .schemas
+        .iter()
+        .map(|s| {
+            let fields: Vec<_> = s
+                .fields
+                .iter()
+                .map(|f| json!({ "name": f.name, "type": f.data_type, "req": f.required }))
+                .collect();
+            json!({ "name": s.name, "fields": fields })
+        })
+        .collect();
+    let fact = json!({
+        "k": "oapi",
+        "id": format!("o{idx}"),
+        "p": path,
+        "title": artifact.title,
+        "v": artifact.version,
+        "ops": operations,
+        "schemas": schemas,
+    });
+    let _ = writeln!(out, "{}", serde_json::to_string(&fact).unwrap());
+}
+
+fn push_graphql(out: &mut String, idx: usize, artifact: &GraphqlArtifact, root: &std::path::Path) {
+    let path = artifact
+        .path
+        .strip_prefix(root)
+        .unwrap_or(&artifact.path)
+        .display()
+        .to_string();
+    let types: Vec<_> = artifact
+        .types
+        .iter()
+        .map(|t| {
+            let kind = match t.kind {
+                GraphqlTypeKind::Object => "type",
+                GraphqlTypeKind::Input => "input",
+                GraphqlTypeKind::Interface => "interface",
+                GraphqlTypeKind::Union => "union",
+                GraphqlTypeKind::Enum => "enum",
+                GraphqlTypeKind::Scalar => "scalar",
+            };
+            let fields: Vec<_> = t
+                .fields
+                .iter()
+                .map(|f| json!({ "name": f.name, "type": f.field_type, "req": f.required }))
+                .collect();
+            json!({ "name": t.name, "kind": kind, "fields": fields })
+        })
+        .collect();
+    let fact = json!({
+        "k": "gql",
+        "id": format!("g{idx}"),
+        "p": path,
+        "queries": artifact.queries,
+        "mutations": artifact.mutations,
+        "subscriptions": artifact.subscriptions,
+        "types": types,
+    });
+    let _ = writeln!(out, "{}", serde_json::to_string(&fact).unwrap());
+}
+
 fn push_manifest(out: &mut String, idx: usize, manifest: &Manifest, root: &std::path::Path) {
     let path = manifest
         .path
@@ -196,6 +288,7 @@ fn push_file(out: &mut String, id: &str, file: &FileSummary, root: &std::path::P
         "p": path,
         "lang": file.language.as_str(),
         "loc": file.line_count,
+        "cx": file.complexity,
         "imp": file.imports,
         "tags": label_list(&file.semantic_tags),
     });
@@ -210,7 +303,9 @@ fn push_symbol(out: &mut String, sid: &str, fid: &str, symbol: &Symbol) {
         "n": symbol.name,
         "t": symbol_kind_str(&format!("{:?}", symbol.kind)),
         "l": symbol.line,
+        "el": symbol.end_line,
         "col": symbol.column,
+        "cx": symbol.complexity,
         "doc": symbol.doc_comment,
         "tags": label_list(&symbol.semantic_tags),
     });
@@ -285,6 +380,8 @@ fn symbol_kind_str(debug_form: &str) -> &str {
         "Class" => "class",
         "Struct" => "struct",
         "Interface" => "iface",
+        "Trait" => "trait",
+        "Enum" => "enum",
         "TypeAlias" => "type",
         "Variable" => "var",
         "Constant" => "const",

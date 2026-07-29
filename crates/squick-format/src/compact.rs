@@ -11,7 +11,9 @@
 //! lines are its rows. `-` marks an empty cell; `,` separates list values;
 //! tabs/newlines inside free text are flattened to spaces.
 
-use squick_core::{DockerArtifact, DockerKind, Project, SemanticTag, StrapiSchema, Symbol};
+use squick_core::{
+    DockerArtifact, DockerKind, GraphqlTypeKind, Project, SemanticTag, StrapiSchema, Symbol,
+};
 use std::fmt::Write;
 
 const LEGEND: &str = "# squick compact v1 | '@type col...' header then TAB rows | '-'=empty | ','=list | tabs/newlines in text -> space";
@@ -29,6 +31,8 @@ pub fn format_compact(project: &Project) -> String {
     push_endpoints(&mut out, project, &file_ids);
     push_schemas(&mut out, project);
     push_docker(&mut out, project);
+    push_openapi(&mut out, project);
+    push_graphql(&mut out, project);
 
     out
 }
@@ -53,11 +57,11 @@ fn push_project(out: &mut String, project: &Project) {
 
     let _ = writeln!(
         out,
-        "@proj\troot\tfiles\tsyms\trefs\teps\tschemas\tcontainers\tframeworks"
+        "@proj\troot\tfiles\tsyms\trefs\teps\tschemas\tcontainers\topenapi\tgraphql\tframeworks"
     );
     let _ = writeln!(
         out,
-        "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+        "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
         cell(&project.root.display().to_string()),
         project.files.len(),
         symbols,
@@ -65,6 +69,8 @@ fn push_project(out: &mut String, project: &Project) {
         endpoints,
         project.strapi_schemas.len(),
         project.docker.len(),
+        project.openapi.len(),
+        project.graphql.len(),
         list(&frameworks)
     );
 }
@@ -101,15 +107,16 @@ fn push_files(out: &mut String, project: &Project, file_ids: &[String]) {
     if project.files.is_empty() {
         return;
     }
-    let _ = writeln!(out, "@file\tid\tpath\tlang\tloc\ttags\timports");
+    let _ = writeln!(out, "@file\tid\tpath\tlang\tloc\tcx\ttags\timports");
     for (idx, file) in project.files.iter().enumerate() {
         let _ = writeln!(
             out,
-            "{}\t{}\t{}\t{}\t{}\t{}",
+            "{}\t{}\t{}\t{}\t{}\t{}\t{}",
             file_ids[idx],
             cell(&rel(&file.path, project)),
             file.language.as_str(),
             file.line_count,
+            file.complexity,
             tag_list(&file.semantic_tags),
             list_strings(&file.imports)
         );
@@ -126,7 +133,10 @@ fn push_symbols(out: &mut String, project: &Project, file_ids: &[String]) -> Vec
         return symbol_index;
     }
 
-    let _ = writeln!(out, "@sym\tid\tfid\tname\tkind\tline\tcol\tdoc\ttags");
+    let _ = writeln!(
+        out,
+        "@sym\tid\tfid\tname\tkind\tline\tendline\tcol\tcx\tdoc\ttags"
+    );
     let mut symbol_id = 0usize;
     for (file_idx, file) in project.files.iter().enumerate() {
         let mut ids_for_file = Vec::with_capacity(file.symbols.len());
@@ -144,11 +154,13 @@ fn push_symbols(out: &mut String, project: &Project, file_ids: &[String]) -> Vec
 fn write_symbol(out: &mut String, sid: &str, fid: &str, symbol: &Symbol) {
     let _ = writeln!(
         out,
-        "{sid}\t{fid}\t{}\t{}\t{}\t{}\t{}\t{}",
+        "{sid}\t{fid}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
         cell(&symbol.name),
         symbol_kind_str(&format!("{:?}", symbol.kind)),
         symbol.line,
+        symbol.end_line,
         symbol.column,
+        symbol.complexity,
         opt(symbol.doc_comment.as_deref()),
         tag_list(&symbol.semantic_tags)
     );
@@ -310,6 +322,100 @@ fn write_docker(out: &mut String, idx: usize, art: &DockerArtifact, _project: &P
     );
 }
 
+fn push_openapi(out: &mut String, project: &Project) {
+    if project.openapi.is_empty() {
+        return;
+    }
+    let _ = writeln!(out, "@oapi\tid\tpath\ttitle\tversion");
+    for (i, art) in project.openapi.iter().enumerate() {
+        let _ = writeln!(
+            out,
+            "o{i}\t{}\t{}\t{}",
+            cell(&rel(&art.path, project)),
+            opt(art.title.as_deref()),
+            opt(art.version.as_deref())
+        );
+    }
+    let has_ops = project.openapi.iter().any(|a| !a.operations.is_empty());
+    if has_ops {
+        let _ = writeln!(out, "@oapiop\tspec\tmethod\tpath\top_id\tsummary");
+        for (i, art) in project.openapi.iter().enumerate() {
+            for op in &art.operations {
+                let _ = writeln!(
+                    out,
+                    "o{i}\t{}\t{}\t{}\t{}",
+                    op.method.as_str(),
+                    cell(&op.path),
+                    opt(op.operation_id.as_deref()),
+                    opt(op.summary.as_deref())
+                );
+            }
+        }
+    }
+    let has_schemas = project.openapi.iter().any(|a| !a.schemas.is_empty());
+    if has_schemas {
+        let _ = writeln!(out, "@oapisch\tspec\tname\tfields");
+        for (i, art) in project.openapi.iter().enumerate() {
+            for schema in &art.schemas {
+                let fields: Vec<String> = schema
+                    .fields
+                    .iter()
+                    .map(|f| {
+                        let req = if f.required { "!" } else { "" };
+                        format!("{}={}{req}", f.name, f.data_type)
+                    })
+                    .collect();
+                let _ = writeln!(
+                    out,
+                    "o{i}\t{}\t{}",
+                    cell(&schema.name),
+                    list_strings(&fields)
+                );
+            }
+        }
+    }
+}
+
+fn push_graphql(out: &mut String, project: &Project) {
+    if project.graphql.is_empty() {
+        return;
+    }
+    let _ = writeln!(out, "@gql\tid\tpath\tqueries\tmutations\tsubscriptions");
+    for (i, art) in project.graphql.iter().enumerate() {
+        let _ = writeln!(
+            out,
+            "g{i}\t{}\t{}\t{}\t{}",
+            cell(&rel(&art.path, project)),
+            list_strings(&art.queries),
+            list_strings(&art.mutations),
+            list_strings(&art.subscriptions)
+        );
+    }
+    let has_types = project.graphql.iter().any(|a| !a.types.is_empty());
+    if has_types {
+        let _ = writeln!(out, "@gqltype\tschema\tname\tkind\tfields");
+        for (i, art) in project.graphql.iter().enumerate() {
+            for ty in &art.types {
+                let kind = match ty.kind {
+                    GraphqlTypeKind::Object => "type",
+                    GraphqlTypeKind::Input => "input",
+                    GraphqlTypeKind::Interface => "interface",
+                    GraphqlTypeKind::Union => "union",
+                    GraphqlTypeKind::Enum => "enum",
+                    GraphqlTypeKind::Scalar => "scalar",
+                };
+                let fields: Vec<String> = ty.fields.iter().map(|f| f.name.clone()).collect();
+                let _ = writeln!(
+                    out,
+                    "g{i}\t{}\t{kind}\t{}",
+                    cell(&ty.name),
+                    list_strings(&fields)
+                );
+            }
+        }
+    }
+}
+
 fn enumerate_file_ids(project: &Project) -> Vec<String> {
     (0..project.files.len()).map(|i| format!("f{i}")).collect()
 }
@@ -378,6 +484,8 @@ fn symbol_kind_str(debug_form: &str) -> &str {
         "Class" => "class",
         "Struct" => "struct",
         "Interface" => "iface",
+        "Trait" => "trait",
+        "Enum" => "enum",
         "TypeAlias" => "type",
         "Variable" => "var",
         "Constant" => "const",

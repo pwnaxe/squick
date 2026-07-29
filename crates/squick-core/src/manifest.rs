@@ -1,9 +1,9 @@
 // Copyright 2026 Hub Horizon LLC
 // SPDX-License-Identifier: Apache-2.0
 
-//! Walks the project tree for `package.json`, `pyproject.toml`, and Strapi
-//! `schema.json` files. Found data lands on `Project.manifests` and
-//! `Project.strapi_schemas`.
+//! Walks the project tree for `package.json`, `pyproject.toml`,
+//! `composer.json`, `Cargo.toml`, and Strapi `schema.json` files. Found
+//! data lands on `Project.manifests` and `Project.strapi_schemas`.
 
 use crate::types::{
     Confidence, Manifest, ManifestKind, Project, SemanticTag, StrapiAttribute, StrapiSchema,
@@ -16,6 +16,7 @@ use std::path::Path;
 const PACKAGE_JSON: &str = "package.json";
 const PYPROJECT_TOML: &str = "pyproject.toml";
 const COMPOSER_JSON: &str = "composer.json";
+const CARGO_TOML: &str = "Cargo.toml";
 const SCHEMA_JSON: &str = "schema.json";
 
 pub fn scan(project: &mut Project, respect_ignore: bool) {
@@ -44,6 +45,11 @@ pub fn scan(project: &mut Project, respect_ignore: bool) {
             }
             COMPOSER_JSON => {
                 if let Some(manifest) = parse_composer_json(path) {
+                    project.manifests.push(manifest);
+                }
+            }
+            CARGO_TOML => {
+                if let Some(manifest) = parse_cargo_toml(path) {
                     project.manifests.push(manifest);
                 }
             }
@@ -415,6 +421,106 @@ fn derive_framework_tags(dependencies: &[String]) -> Vec<SemanticTag> {
         }
         if dep == "mongoose" {
             emit("orm-mongoose");
+        }
+    }
+    tags
+}
+
+fn parse_cargo_toml(path: &Path) -> Option<Manifest> {
+    let text = std::fs::read_to_string(path).ok()?;
+    let value: toml::Value = toml::from_str(&text).ok()?;
+
+    let package_table = value.get("package").and_then(|v| v.as_table());
+    let workspace_table = value.get("workspace").and_then(|v| v.as_table());
+    // Neither a package nor a workspace root: not a Cargo manifest we care about.
+    package_table.or(workspace_table)?;
+
+    let name = package_table
+        .and_then(|t| t.get("name"))
+        .and_then(|v| v.as_str())
+        .map(String::from);
+    let version = package_table
+        .and_then(|t| t.get("version"))
+        .or_else(|| {
+            workspace_table
+                .and_then(|t| t.get("package"))
+                .and_then(|v| v.get("version"))
+        })
+        .and_then(|v| v.as_str())
+        .map(String::from);
+
+    let dependencies = collect_cargo_dependencies(&value);
+    let framework_tags = derive_rust_framework_tags(&dependencies);
+
+    Some(Manifest {
+        kind: ManifestKind::CargoToml,
+        path: path.to_path_buf(),
+        name,
+        version,
+        dependencies,
+        scripts: Vec::new(),
+        framework_tags,
+    })
+}
+
+/// Dependency names from `[dependencies]`, `[dev-dependencies]`, and
+/// `[build-dependencies]` (a package manifest), plus `[workspace.dependencies]`
+/// (a workspace root) — a file can be both at once.
+fn collect_cargo_dependencies(value: &toml::Value) -> Vec<String> {
+    const FIELDS: &[&str] = &["dependencies", "dev-dependencies", "build-dependencies"];
+    let mut deps = Vec::new();
+    for field in FIELDS {
+        if let Some(table) = value.get(*field).and_then(|v| v.as_table()) {
+            for key in table.keys() {
+                if !deps.contains(key) {
+                    deps.push(key.clone());
+                }
+            }
+        }
+    }
+    if let Some(table) = value
+        .get("workspace")
+        .and_then(|v| v.get("dependencies"))
+        .and_then(|v| v.as_table())
+    {
+        for key in table.keys() {
+            if !deps.contains(key) {
+                deps.push(key.clone());
+            }
+        }
+    }
+    deps
+}
+
+fn derive_rust_framework_tags(dependencies: &[String]) -> Vec<SemanticTag> {
+    let mut tags = Vec::new();
+    let mut emit = |label: &str| {
+        if !tags.iter().any(|t: &SemanticTag| t.label == label) {
+            tags.push(SemanticTag {
+                label: label.to_string(),
+                source: TagSource::Heuristic {
+                    rule: "cargo-dependency".to_string(),
+                },
+                confidence: Confidence::High,
+            });
+        }
+    };
+    for dep in dependencies {
+        let lower = dep.to_ascii_lowercase();
+        match lower.as_str() {
+            "axum" => emit("framework-axum"),
+            "actix-web" => emit("framework-actix-web"),
+            "rocket" => emit("framework-rocket"),
+            "warp" => emit("framework-warp"),
+            "tide" => emit("framework-tide"),
+            "tonic" => emit("framework-tonic-grpc"),
+            "tokio" => emit("runtime-tokio"),
+            "async-std" => emit("runtime-async-std"),
+            "diesel" => emit("orm-diesel"),
+            "sea-orm" => emit("orm-sea-orm"),
+            "sqlx" => emit("orm-sqlx"),
+            "rusqlite" => emit("db-sqlite"),
+            _ => {}
         }
     }
     tags

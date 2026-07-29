@@ -496,6 +496,26 @@ fn detect_api_surface(project: &Project, d: &mut Detected) {
             project.strapi_schemas.len()
         ));
     }
+
+    if !project.openapi.is_empty() {
+        let operation_count: usize = project.openapi.iter().map(|a| a.operations.len()).sum();
+        d.api_surface.push(format!(
+            "{operation_count} OpenAPI operation(s) across {} spec(s); see `schemas.md`",
+            project.openapi.len()
+        ));
+    }
+
+    if !project.graphql.is_empty() {
+        let operation_count: usize = project
+            .graphql
+            .iter()
+            .map(|a| a.queries.len() + a.mutations.len() + a.subscriptions.len())
+            .sum();
+        d.api_surface.push(format!(
+            "{operation_count} GraphQL query/mutation/subscription field(s) across {} schema(s); see `schemas.md`",
+            project.graphql.len()
+        ));
+    }
 }
 
 pub(crate) fn endpoint_source_label(source: &EndpointSource) -> &'static str {

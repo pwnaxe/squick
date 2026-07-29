@@ -73,12 +73,17 @@ pub struct Symbol {
     pub kind: SymbolKind,
     pub file: PathBuf,
     pub line: usize,
+    pub end_line: usize,
     pub column: usize,
     pub doc_comment: Option<String>,
     pub inline_comments: Vec<Comment>,
     pub references: Vec<Reference>,
     pub semantic_tags: Vec<SemanticTag>,
     pub confidence: Confidence,
+    /// Decision points (see `FileSummary::complexity`) attributed to this
+    /// symbol's span. Points inside a nested symbol are credited to the
+    /// innermost enclosing one, not its parents.
+    pub complexity: usize,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -167,6 +172,9 @@ pub struct FileSummary {
     pub semantic_tags: Vec<SemanticTag>,
     pub endpoints: Vec<Endpoint>,
     pub line_count: usize,
+    /// Count of decision points (branches, loops, catches, `&&`/`||`)
+    /// found while walking the file's AST — a cyclomatic-complexity proxy.
+    pub complexity: usize,
     /// Raw call sites collected during extraction. Drained by the
     /// resolver and not serialized.
     #[serde(skip)]
@@ -179,6 +187,7 @@ pub enum ManifestKind {
     NodePackage,
     PythonProject,
     PhpComposer,
+    CargoToml,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -278,6 +287,82 @@ pub struct StrapiSchema {
     pub attributes: Vec<StrapiAttribute>,
 }
 
+/// One path+method entry from an OpenAPI/Swagger `paths` object.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct OpenApiOperation {
+    pub method: HttpMethod,
+    pub path: String,
+    pub operation_id: Option<String>,
+    pub summary: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct OpenApiSchemaField {
+    pub name: String,
+    pub data_type: String,
+    pub required: bool,
+}
+
+/// One entry from `components.schemas` (OpenAPI 3) / `definitions`
+/// (Swagger 2).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct OpenApiSchema {
+    pub name: String,
+    pub fields: Vec<OpenApiSchemaField>,
+}
+
+/// One `openapi.yaml`/`swagger.json`-style spec file, detected by content
+/// (`openapi:`/`swagger:` top-level key) rather than filename, since
+/// OpenAPI specs have no fixed naming convention.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OpenApiArtifact {
+    pub path: PathBuf,
+    pub title: Option<String>,
+    pub version: Option<String>,
+    pub operations: Vec<OpenApiOperation>,
+    pub schemas: Vec<OpenApiSchema>,
+}
+
+/// One field on a GraphQL SDL type/input/interface declaration.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct GraphqlField {
+    pub name: String,
+    pub field_type: String,
+    pub required: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum GraphqlTypeKind {
+    Object,
+    Input,
+    Interface,
+    Union,
+    Enum,
+    Scalar,
+}
+
+/// One `type`/`input`/`interface`/`union`/`enum`/`scalar` declaration from a
+/// GraphQL SDL schema file.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct GraphqlType {
+    pub name: String,
+    pub kind: GraphqlTypeKind,
+    pub fields: Vec<GraphqlField>,
+}
+
+/// One `.graphql`/`.gql` SDL schema file. `queries`/`mutations`/
+/// `subscriptions` are the field names declared on the root `Query`/
+/// `Mutation`/`Subscription` types, surfaced as the API's operations.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GraphqlArtifact {
+    pub path: PathBuf,
+    pub types: Vec<GraphqlType>,
+    pub queries: Vec<String>,
+    pub mutations: Vec<String>,
+    pub subscriptions: Vec<String>,
+}
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Project {
     pub root: PathBuf,
@@ -286,6 +371,8 @@ pub struct Project {
     pub manifests: Vec<Manifest>,
     pub strapi_schemas: Vec<StrapiSchema>,
     pub docker: Vec<DockerArtifact>,
+    pub openapi: Vec<OpenApiArtifact>,
+    pub graphql: Vec<GraphqlArtifact>,
 }
 
 #[cfg(test)]

@@ -12,6 +12,7 @@ pub enum Language {
     Jsx,
     Python,
     Php,
+    Rust,
 }
 
 impl Language {
@@ -24,6 +25,7 @@ impl Language {
             "jsx" => Language::Jsx,
             "py" | "pyi" => Language::Python,
             "php" | "php3" | "php4" | "php5" | "phtml" => Language::Php,
+            "rs" => Language::Rust,
             _ => return None,
         })
     }
@@ -36,6 +38,7 @@ impl Language {
             Language::Jsx => "jsx",
             Language::Python => "python",
             Language::Php => "php",
+            Language::Rust => "rust",
         }
     }
 
@@ -46,6 +49,7 @@ impl Language {
             Language::JavaScript | Language::Jsx => tree_sitter_javascript::LANGUAGE.into(),
             Language::Python => tree_sitter_python::LANGUAGE.into(),
             Language::Php => tree_sitter_php::LANGUAGE_PHP.into(),
+            Language::Rust => tree_sitter_rust::LANGUAGE.into(),
         }
     }
 }
@@ -85,11 +89,14 @@ mod tests {
             Language::from_path(&PathBuf::from("index.PHTML")),
             Some(Language::Php)
         );
+        assert_eq!(
+            Language::from_path(&PathBuf::from("foo.rs")),
+            Some(Language::Rust)
+        );
     }
 
     #[test]
     fn ignores_unknown_extensions() {
-        assert_eq!(Language::from_path(&PathBuf::from("foo.rs")), None);
         assert_eq!(Language::from_path(&PathBuf::from("README")), None);
         assert_eq!(Language::from_path(&PathBuf::from("foo")), None);
     }

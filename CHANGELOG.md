@@ -4,6 +4,38 @@ All notable changes to this project are documented in this file. The
 format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.2.0] - 2026-07-29
+
+### Added
+
+- Rust support: Tree-sitter extraction of functions, structs, enums,
+  traits (including trait-method signatures), impl-block methods,
+  modules, consts/statics, type aliases, `use` imports, doc comments,
+  and call sites (free functions, path calls, method calls).
+- `Cargo.toml` manifest parsing (name, version, dependencies, framework
+  detection for Axum, Actix Web, Rocket, Warp, Tide, Tonic, Tokio,
+  Diesel, SeaORM, SQLx). Covers both package and workspace-root
+  manifests (the latter reads `[workspace.dependencies]`).
+- OpenAPI/Swagger spec extraction: detected by content (`openapi:`/
+  `swagger:` key), not filename. Surfaces `info.title`/`version`,
+  `paths` as operations (method, path, operationId, summary), and
+  `components.schemas`/`definitions` as data schemas (fields, types,
+  required).
+- GraphQL SDL schema extraction (`.graphql`/`.gql`): `type`/`input`/
+  `interface`/`union`/`enum`/`scalar` declarations with their fields,
+  plus `Query`/`Mutation`/`Subscription` root fields as the schema's
+  operations. A schema extractor, not a client query-document parser.
+- New MCP tools `squick_get_openapi` and `squick_get_graphql`.
+- `bindings/node` and `extensions/vscode` now build in CI; neither was
+  covered before, so npm dependency bumps in those directories always
+  showed green regardless of what broke.
+
+### Fixed
+
+- `Trait` and `Enum` symbols showed up as `other` instead of `trait`/
+  `enum` in `context.ndjson`, `context.txt`, and `graph.txt` — the
+  abbreviation tables in all three emitters were missing both.
+
 ## [2.1.1] - 2026-06-28
 
 ### Fixed

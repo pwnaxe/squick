@@ -8,8 +8,10 @@ pub mod docker;
 pub mod error;
 pub mod extract;
 pub mod graph;
+pub mod graphql;
 pub mod language;
 pub mod manifest;
+pub mod openapi;
 pub mod parser;
 pub mod resolve;
 pub mod scanner;
@@ -21,6 +23,8 @@ pub use language::Language;
 pub use scanner::{ScanOptions, Scanner};
 pub use types::{
     CallKind, CallSite, Comment, Confidence, DockerArtifact, DockerKind, DockerService,
-    DockerStage, Endpoint, EndpointSource, FileSummary, HttpMethod, Manifest, ManifestKind,
-    Project, Reference, SemanticTag, StrapiAttribute, StrapiSchema, Symbol, SymbolKind, TagSource,
+    DockerStage, Endpoint, EndpointSource, FileSummary, GraphqlArtifact, GraphqlField, GraphqlType,
+    GraphqlTypeKind, HttpMethod, Manifest, ManifestKind, OpenApiArtifact, OpenApiOperation,
+    OpenApiSchema, OpenApiSchemaField, Project, Reference, SemanticTag, StrapiAttribute,
+    StrapiSchema, Symbol, SymbolKind, TagSource,
 };

@@ -1,15 +1,23 @@
 // Copyright 2026 Hub Horizon LLC
 // SPDX-License-Identifier: Apache-2.0
 
-//! `schemas.md` renderer: manifests, Strapi content types, and endpoints.
+//! `schemas.md` renderer: manifests, Strapi content types, OpenAPI specs,
+//! GraphQL schemas, and endpoints.
 
-use squick_core::{Endpoint, Project, StrapiSchema};
+use squick_core::{
+    Endpoint, GraphqlArtifact, GraphqlTypeKind, OpenApiArtifact, Project, StrapiSchema,
+};
 use std::fmt::Write;
 use std::path::Path;
 
 pub fn format_schemas(project: &Project) -> Option<String> {
     let endpoint_count: usize = project.files.iter().map(|f| f.endpoints.len()).sum();
-    if project.manifests.is_empty() && project.strapi_schemas.is_empty() && endpoint_count == 0 {
+    if project.manifests.is_empty()
+        && project.strapi_schemas.is_empty()
+        && project.openapi.is_empty()
+        && project.graphql.is_empty()
+        && endpoint_count == 0
+    {
         return None;
     }
 
@@ -17,10 +25,12 @@ pub fn format_schemas(project: &Project) -> Option<String> {
     let _ = writeln!(out, "# Squick schemas");
     let _ = writeln!(
         out,
-        "\nRoot: `{}` · Manifests: {} · Strapi schemas: {} · Endpoints: {}",
+        "\nRoot: `{}` · Manifests: {} · Strapi schemas: {} · OpenAPI specs: {} · GraphQL schemas: {} · Endpoints: {}",
         project.root.display(),
         project.manifests.len(),
         project.strapi_schemas.len(),
+        project.openapi.len(),
+        project.graphql.len(),
         endpoint_count,
     );
 
@@ -34,6 +44,14 @@ pub fn format_schemas(project: &Project) -> Option<String> {
 
     if !project.strapi_schemas.is_empty() {
         render_strapi_schemas(&mut out, project);
+    }
+
+    if !project.openapi.is_empty() {
+        render_openapi_specs(&mut out, project);
+    }
+
+    if !project.graphql.is_empty() {
+        render_graphql_schemas(&mut out, project);
     }
 
     Some(out)
@@ -157,6 +175,109 @@ fn render_strapi_schema(out: &mut String, project: &Project, schema: &StrapiSche
                 "  - `{}`: {}{}{}",
                 attr.name, attr.data_type, extra, required
             );
+        }
+    }
+}
+
+fn render_openapi_specs(out: &mut String, project: &Project) {
+    let _ = writeln!(out, "\n## OpenAPI specs");
+    for artifact in &project.openapi {
+        render_openapi_spec(out, project, artifact);
+    }
+}
+
+fn render_openapi_spec(out: &mut String, project: &Project, artifact: &OpenApiArtifact) {
+    let rel = artifact
+        .path
+        .strip_prefix(&project.root)
+        .unwrap_or(&artifact.path);
+    let title = artifact.title.as_deref().unwrap_or("<untitled>");
+    let version = artifact.version.as_deref().unwrap_or("-");
+    let _ = writeln!(out, "\n### {title} _(v{version})_");
+    let _ = writeln!(out, "- path: `{}`", rel.display());
+    if !artifact.operations.is_empty() {
+        let _ = writeln!(out, "- operations ({}):", artifact.operations.len());
+        for op in &artifact.operations {
+            let handler = op
+                .operation_id
+                .as_deref()
+                .map(|id| format!(" -> `{id}`"))
+                .unwrap_or_default();
+            let summary = op
+                .summary
+                .as_deref()
+                .map(|s| format!(" — {s}"))
+                .unwrap_or_default();
+            let _ = writeln!(
+                out,
+                "  - `{} {}`{}{}",
+                op.method.as_str(),
+                op.path,
+                handler,
+                summary
+            );
+        }
+    }
+    if !artifact.schemas.is_empty() {
+        let _ = writeln!(out, "- schemas:");
+        for schema in &artifact.schemas {
+            let fields: Vec<String> = schema
+                .fields
+                .iter()
+                .map(|f| {
+                    let required = if f.required { "!" } else { "" };
+                    format!("{}: {}{required}", f.name, f.data_type)
+                })
+                .collect();
+            let _ = writeln!(out, "  - `{}` ({})", schema.name, fields.join(", "));
+        }
+    }
+}
+
+fn render_graphql_schemas(out: &mut String, project: &Project) {
+    let _ = writeln!(out, "\n## GraphQL schemas");
+    for artifact in &project.graphql {
+        render_graphql_artifact(out, project, artifact);
+    }
+}
+
+fn render_graphql_artifact(out: &mut String, project: &Project, artifact: &GraphqlArtifact) {
+    let rel = artifact
+        .path
+        .strip_prefix(&project.root)
+        .unwrap_or(&artifact.path);
+    let _ = writeln!(out, "\n### {}", rel.display());
+    if !artifact.queries.is_empty() {
+        let _ = writeln!(out, "- queries: {}", artifact.queries.join(", "));
+    }
+    if !artifact.mutations.is_empty() {
+        let _ = writeln!(out, "- mutations: {}", artifact.mutations.join(", "));
+    }
+    if !artifact.subscriptions.is_empty() {
+        let _ = writeln!(
+            out,
+            "- subscriptions: {}",
+            artifact.subscriptions.join(", ")
+        );
+    }
+    let named_types: Vec<_> = artifact
+        .types
+        .iter()
+        .filter(|t| !matches!(t.name.as_str(), "Query" | "Mutation" | "Subscription"))
+        .collect();
+    if !named_types.is_empty() {
+        let _ = writeln!(out, "- types:");
+        for ty in named_types {
+            let kind = match ty.kind {
+                GraphqlTypeKind::Object => "type",
+                GraphqlTypeKind::Input => "input",
+                GraphqlTypeKind::Interface => "interface",
+                GraphqlTypeKind::Union => "union",
+                GraphqlTypeKind::Enum => "enum",
+                GraphqlTypeKind::Scalar => "scalar",
+            };
+            let fields: Vec<String> = ty.fields.iter().map(|f| f.name.clone()).collect();
+            let _ = writeln!(out, "  - `{}` ({kind}): {}", ty.name, fields.join(", "));
         }
     }
 }

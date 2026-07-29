@@ -324,6 +324,69 @@ fn polyglot_single_root_does_not_split() {
 }
 
 #[test]
+fn rust_api_fixture_detects_language_manifest_and_api_specs() {
+    let project = fixture("rust-api");
+
+    assert!(
+        project.files.iter().any(|f| f.language.as_str() == "rust"),
+        "fixture should contain Rust files"
+    );
+    let cargo = project
+        .manifests
+        .iter()
+        .find(|m| m.kind == ManifestKind::CargoToml)
+        .expect("Cargo.toml manifest");
+    assert_eq!(cargo.name.as_deref(), Some("rust-api"));
+    assert!(cargo.dependencies.iter().any(|d| d == "axum"));
+    assert!(
+        cargo
+            .framework_tags
+            .iter()
+            .any(|t| t.label == "framework-axum"),
+        "Cargo.toml should infer framework-axum"
+    );
+    assert!(
+        cargo
+            .framework_tags
+            .iter()
+            .any(|t| t.label == "runtime-tokio"),
+        "Cargo.toml should infer runtime-tokio"
+    );
+
+    let symbols: Vec<_> = project
+        .files
+        .iter()
+        .flat_map(|f| f.symbols.iter())
+        .collect();
+    assert!(symbols.iter().any(|s| s.name == "Book"));
+    assert!(symbols.iter().any(|s| s.name == "Repository"));
+    assert!(symbols.iter().any(|s| s.name == "greet"));
+
+    let openapi = project.openapi.first().expect("openapi.yaml artifact");
+    assert_eq!(openapi.title.as_deref(), Some("Books API"));
+    assert_eq!(openapi.operations.len(), 2);
+    assert!(openapi.schemas.iter().any(|s| s.name == "Book"));
+
+    let graphql = project.graphql.first().expect("schema.graphql artifact");
+    assert_eq!(graphql.queries, vec!["books", "book"]);
+    assert_eq!(graphql.mutations, vec!["createBook"]);
+
+    let schemas = squick_format::format_schemas(&project).expect("schemas output");
+    assert!(schemas.contains("## OpenAPI specs"), "schemas: {schemas}");
+    assert!(schemas.contains("## GraphQL schemas"), "schemas: {schemas}");
+
+    let conventions = squick_format::format_conventions(&project);
+    assert!(
+        conventions.contains("OpenAPI operation(s)"),
+        "conventions: {conventions}"
+    );
+    assert!(
+        conventions.contains("GraphQL query/mutation/subscription"),
+        "conventions: {conventions}"
+    );
+}
+
+#[test]
 fn sample_fixture_scans_clean() {
     let project = fixture("sample");
     assert!(

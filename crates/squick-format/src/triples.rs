@@ -6,7 +6,8 @@
 //! use short URI-like prefixes (`file:`, `sym:`, `schema:`, `ep:`).
 
 use squick_core::{
-    DockerArtifact, DockerKind, Endpoint, FileSummary, Manifest, Project, StrapiSchema, Symbol,
+    DockerArtifact, DockerKind, Endpoint, FileSummary, GraphqlArtifact, GraphqlTypeKind, Manifest,
+    OpenApiArtifact, Project, StrapiSchema, Symbol,
 };
 use std::fmt::Write;
 
@@ -36,6 +37,12 @@ pub fn format_triples(project: &Project) -> String {
     }
     for artifact in &project.docker {
         docker_triples(&mut out, root_id, artifact, &project.root);
+    }
+    for artifact in &project.openapi {
+        openapi_triples(&mut out, root_id, artifact, &project.root);
+    }
+    for artifact in &project.graphql {
+        graphql_triples(&mut out, root_id, artifact, &project.root);
     }
 
     out
@@ -106,6 +113,89 @@ fn docker_triples(out: &mut String, proj: &str, artifact: &DockerArtifact, root:
     }
 }
 
+fn openapi_triples(
+    out: &mut String,
+    proj: &str,
+    artifact: &OpenApiArtifact,
+    root: &std::path::Path,
+) {
+    let path = relative_path(&artifact.path, root);
+    let id = format!("oapi:{path}");
+    let _ = writeln!(out, "{id} type openapi-spec");
+    let _ = writeln!(out, "{proj} declares {id}");
+    if let Some(title) = &artifact.title {
+        let _ = writeln!(out, "{id} title {title}");
+    }
+    if let Some(version) = &artifact.version {
+        let _ = writeln!(out, "{id} version {version}");
+    }
+    for op in &artifact.operations {
+        let op_id = format!("ep:{}:{}", op.method.as_str(), op.path);
+        let _ = writeln!(out, "{id} declares {op_id}");
+        let _ = writeln!(out, "{op_id} type endpoint");
+        let _ = writeln!(out, "{op_id} method {}", op.method.as_str());
+        let _ = writeln!(out, "{op_id} path {}", op.path);
+        if let Some(operation_id) = &op.operation_id {
+            let _ = writeln!(out, "{op_id} operation-id {operation_id}");
+        }
+    }
+    for schema in &artifact.schemas {
+        let schema_id = format!("schema:{}", schema.name);
+        let _ = writeln!(out, "{id} declares {schema_id}");
+        let _ = writeln!(out, "{schema_id} type content-schema");
+        for field in &schema.fields {
+            let required_marker = if field.required { "!" } else { "" };
+            let _ = writeln!(
+                out,
+                "{schema_id} field {} {}{required_marker}",
+                field.name, field.data_type
+            );
+        }
+    }
+}
+
+fn graphql_triples(
+    out: &mut String,
+    proj: &str,
+    artifact: &GraphqlArtifact,
+    root: &std::path::Path,
+) {
+    let path = relative_path(&artifact.path, root);
+    let id = format!("gql:{path}");
+    let _ = writeln!(out, "{id} type graphql-schema");
+    let _ = writeln!(out, "{proj} declares {id}");
+    for query in &artifact.queries {
+        let _ = writeln!(out, "{id} query {query}");
+    }
+    for mutation in &artifact.mutations {
+        let _ = writeln!(out, "{id} mutation {mutation}");
+    }
+    for subscription in &artifact.subscriptions {
+        let _ = writeln!(out, "{id} subscription {subscription}");
+    }
+    for ty in &artifact.types {
+        let kind = match ty.kind {
+            GraphqlTypeKind::Object => "type",
+            GraphqlTypeKind::Input => "input",
+            GraphqlTypeKind::Interface => "interface",
+            GraphqlTypeKind::Union => "union",
+            GraphqlTypeKind::Enum => "enum",
+            GraphqlTypeKind::Scalar => "scalar",
+        };
+        let type_id = format!("gqltype:{}", ty.name);
+        let _ = writeln!(out, "{id} declares {type_id}");
+        let _ = writeln!(out, "{type_id} type {kind}");
+        for field in &ty.fields {
+            let required_marker = if field.required { "!" } else { "" };
+            let _ = writeln!(
+                out,
+                "{type_id} field {} {}{required_marker}",
+                field.name, field.field_type
+            );
+        }
+    }
+}
+
 fn project_triples(out: &mut String, id: &str, project: &Project) {
     let _ = writeln!(out, "{id} type project");
     let _ = writeln!(out, "{id} root {}", project.root.display());
@@ -153,6 +243,7 @@ fn file_triples(out: &mut String, proj: &str, file: &FileSummary, root: &std::pa
     let _ = writeln!(out, "{proj} contains {id}");
     let _ = writeln!(out, "{id} lang {}", file.language.as_str());
     let _ = writeln!(out, "{id} loc {}", file.line_count);
+    let _ = writeln!(out, "{id} complexity {}", file.complexity);
     for import in &file.imports {
         let _ = writeln!(out, "{id} imports dep:{import}");
     }
@@ -181,6 +272,8 @@ fn symbol_triples(out: &mut String, file: &FileSummary, symbol: &Symbol, root: &
         format_kind(&format!("{:?}", symbol.kind))
     );
     let _ = writeln!(out, "{sym_id} line {}", symbol.line);
+    let _ = writeln!(out, "{sym_id} end-line {}", symbol.end_line);
+    let _ = writeln!(out, "{sym_id} complexity {}", symbol.complexity);
     if let Some(doc) = &symbol.doc_comment {
         let one_line = doc.replace('\n', " ");
         let trimmed = one_line.trim();
@@ -254,6 +347,8 @@ fn format_kind(debug_form: &str) -> &str {
         "Class" => "class",
         "Struct" => "struct",
         "Interface" => "interface",
+        "Trait" => "trait",
+        "Enum" => "enum",
         "TypeAlias" => "type",
         "Variable" => "var",
         "Constant" => "const",

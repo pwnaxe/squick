@@ -1,0 +1,23 @@
+openapi: 3.0.0
+info:
+  title: Books API
+  version: 1.0.0
+paths:
+  /books:
+    get:
+      operationId: listBooks
+      summary: List all books
+  /books/{id}:
+    get:
+      operationId: getBook
+components:
+  schemas:
+    Book:
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+      required:
+        - id
+        - title

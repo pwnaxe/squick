@@ -38,6 +38,7 @@ impl FileParser {
             semantic_tags: Vec::new(),
             endpoints: Vec::new(),
             line_count: source.lines().count(),
+            complexity: 0,
             call_sites: Vec::new(),
         };
 

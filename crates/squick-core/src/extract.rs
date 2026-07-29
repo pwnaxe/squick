@@ -18,11 +18,14 @@ pub fn extract(language: Language, root: Node<'_>, source: &[u8], out: &mut File
         comments: Vec::new(),
         jsx_tags: HashSet::new(),
         in_class: false,
+        decision_lines: Vec::new(),
     };
     walk(&mut ctx, root, out);
     attach_doc_comments(&ctx.comments, out);
     add_jsx_tags(&ctx.jsx_tags, out);
     detect_nextjs_route_handlers(out);
+    out.complexity = ctx.decision_lines.len();
+    assign_symbol_complexity(&ctx.decision_lines, &mut out.symbols);
 }
 
 struct Ctx<'a> {
@@ -31,9 +34,76 @@ struct Ctx<'a> {
     comments: Vec<Comment>,
     jsx_tags: HashSet<String>,
     in_class: bool,
+    /// 1-based source lines of decision points found so far.
+    decision_lines: Vec<usize>,
+}
+
+/// Attributes each decision point to the innermost symbol whose span
+/// contains it (e.g. a nested function's branches count toward that
+/// function, not the outer one or the enclosing class).
+fn assign_symbol_complexity(decision_lines: &[usize], symbols: &mut [Symbol]) {
+    for &line in decision_lines {
+        let mut tightest: Option<usize> = None;
+        for (i, sym) in symbols.iter().enumerate() {
+            if sym.line <= line && line <= sym.end_line {
+                let span = sym.end_line - sym.line;
+                let is_tighter = match tightest {
+                    None => true,
+                    Some(best) => span < symbols[best].end_line - symbols[best].line,
+                };
+                if is_tighter {
+                    tightest = Some(i);
+                }
+            }
+        }
+        if let Some(i) = tightest {
+            symbols[i].complexity += 1;
+        }
+    }
+}
+
+/// Whether a node is a branch, loop, catch, or short-circuit boolean
+/// operator — the standard cyclomatic-complexity decision points.
+/// Node-kind names are shared verbatim across the JS/TS/Python/PHP
+/// grammars this crate parses, so no per-language guard is needed
+/// except for `binary_expression`, which also covers arithmetic. Rust's
+/// node-kind names (`if_expression`, `match_arm`, ...) don't collide with
+/// any of the above, so they're added unconditionally too.
+fn is_decision_point(node: Node<'_>) -> bool {
+    match node.kind() {
+        "if_statement"
+        | "elif_clause"
+        | "else_if_clause"
+        | "for_statement"
+        | "for_in_statement"
+        | "foreach_statement"
+        | "while_statement"
+        | "do_statement"
+        | "switch_case"
+        | "case_statement"
+        | "case_clause"
+        | "catch_clause"
+        | "except_clause"
+        | "ternary_expression"
+        | "conditional_expression"
+        | "boolean_operator"
+        | "if_expression"
+        | "while_expression"
+        | "loop_expression"
+        | "for_expression"
+        | "match_arm" => true,
+        "binary_expression" => matches!(
+            node.child_by_field_name("operator").map(|op| op.kind()),
+            Some("&&") | Some("||")
+        ),
+        _ => false,
+    }
 }
 
 fn walk(ctx: &mut Ctx<'_>, node: Node<'_>, out: &mut FileSummary) {
+    if is_decision_point(node) {
+        ctx.decision_lines.push(node.start_position().row + 1);
+    }
     match node.kind() {
         "comment" => {
             if let Some(c) = make_comment(node, ctx.source) {
@@ -124,6 +194,22 @@ fn walk(ctx: &mut Ctx<'_>, node: Node<'_>, out: &mut FileSummary) {
             }
         }
 
+        "call_expression" if ctx.language == Language::Rust => {
+            if let Some(callee) = node.child_by_field_name("function") {
+                if let Some(name) = rust_callee_name(callee, ctx.source) {
+                    out.call_sites.push(CallSite {
+                        name,
+                        line: callee.start_position().row + 1,
+                        kind: CallKind::Call,
+                    });
+                }
+            }
+        }
+        "line_comment" | "block_comment" if ctx.language == Language::Rust => {
+            if let Some(c) = make_comment(node, ctx.source) {
+                ctx.comments.push(c);
+            }
+        }
         "call_expression" => {
             if let Some(callee) = node.child_by_field_name("function") {
                 if is_free_callee(callee) {
@@ -239,6 +325,77 @@ fn walk(ctx: &mut Ctx<'_>, node: Node<'_>, out: &mut FileSummary) {
             }
         }
 
+        "function_item" if ctx.language == Language::Rust => {
+            if let Some(name) = field_text(node, "name", ctx.source) {
+                let kind = if ctx.in_class {
+                    SymbolKind::Method
+                } else {
+                    SymbolKind::Function
+                };
+                out.symbols.push(make_symbol(name, kind, node));
+            }
+        }
+        "function_signature_item" if ctx.language == Language::Rust => {
+            // Trait method declaration without a body (`fn foo(&self);`).
+            if let Some(name) = field_text(node, "name", ctx.source) {
+                out.symbols
+                    .push(make_symbol(name, SymbolKind::Method, node));
+            }
+        }
+        "struct_item" if ctx.language == Language::Rust => {
+            if let Some(name) = field_text(node, "name", ctx.source) {
+                out.symbols
+                    .push(make_symbol(name, SymbolKind::Struct, node));
+            }
+        }
+        "enum_item" if ctx.language == Language::Rust => {
+            if let Some(name) = field_text(node, "name", ctx.source) {
+                out.symbols.push(make_symbol(name, SymbolKind::Enum, node));
+            }
+        }
+        "trait_item" if ctx.language == Language::Rust => {
+            if let Some(name) = field_text(node, "name", ctx.source) {
+                out.symbols.push(make_symbol(name, SymbolKind::Trait, node));
+            }
+            let was_in_class = ctx.in_class;
+            ctx.in_class = true;
+            recurse(ctx, node, out);
+            ctx.in_class = was_in_class;
+            return;
+        }
+        // `impl Foo` / `impl Trait for Foo` isn't itself a symbol; its
+        // `function_item`s are the type's methods.
+        "impl_item" if ctx.language == Language::Rust => {
+            let was_in_class = ctx.in_class;
+            ctx.in_class = true;
+            recurse(ctx, node, out);
+            ctx.in_class = was_in_class;
+            return;
+        }
+        "mod_item" if ctx.language == Language::Rust => {
+            if let Some(name) = field_text(node, "name", ctx.source) {
+                out.symbols
+                    .push(make_symbol(name, SymbolKind::Module, node));
+            }
+        }
+        "const_item" | "static_item" if ctx.language == Language::Rust => {
+            if let Some(name) = field_text(node, "name", ctx.source) {
+                out.symbols
+                    .push(make_symbol(name, SymbolKind::Constant, node));
+            }
+        }
+        "type_item" if ctx.language == Language::Rust => {
+            if let Some(name) = field_text(node, "name", ctx.source) {
+                out.symbols
+                    .push(make_symbol(name, SymbolKind::TypeAlias, node));
+            }
+        }
+        "use_declaration" if ctx.language == Language::Rust => {
+            if let Some(path) = rust_use_path(node, ctx.source) {
+                out.imports.push(path);
+            }
+        }
+
         _ => {}
     }
 
@@ -264,12 +421,14 @@ fn make_symbol(name: String, kind: SymbolKind, node: Node<'_>) -> Symbol {
         kind,
         file: std::path::PathBuf::new(),
         line: pos.row + 1,
+        end_line: node.end_position().row + 1,
         column: pos.column + 1,
         doc_comment: None,
         inline_comments: Vec::new(),
         references: Vec::new(),
         semantic_tags: Vec::new(),
         confidence: Confidence::High,
+        complexity: 0,
     }
 }
 
@@ -868,6 +1027,41 @@ fn normalize_php_path(raw: &str) -> String {
     }
 }
 
+// ---- Rust -----------------------------------------------------------------
+
+/// Callee name for a Rust `call_expression`. Rust's grammar has no separate
+/// method-call node: `foo()` is `identifier`, `HashMap::new()` is
+/// `scoped_identifier` (path: name), and `map.insert()` is a
+/// `field_expression` (value . field) — all three arrive here.
+fn rust_callee_name(node: Node<'_>, source: &[u8]) -> Option<String> {
+    match node.kind() {
+        "identifier" => Some(text(node, source).to_string()),
+        "scoped_identifier" | "field_expression" => node
+            .child_by_field_name("name")
+            .or_else(|| node.child_by_field_name("field"))
+            .map(|n| text(n, source).to_string()),
+        _ => None,
+    }
+}
+
+/// Renders a `use` declaration as one import string, covering simple paths
+/// (`use foo::Bar;`), aliases (`use foo::Bar as Baz;`), grouped imports
+/// (`use foo::{Bar, Baz};`), and globs (`use foo::*;`). Kept as the raw
+/// path text (minus the `use`/`;`) rather than exploded per imported name,
+/// matching how JS's `import_statement` stores its whole specifier as one
+/// entry. Whitespace is collapsed since multi-line grouped imports would
+/// otherwise carry their original newlines/indentation into the fact.
+fn rust_use_path(node: Node<'_>, source: &[u8]) -> Option<String> {
+    let raw = text(node, source);
+    let inner = raw.strip_prefix("use")?.trim().trim_end_matches(';').trim();
+    let collapsed = inner.split_whitespace().collect::<Vec<_>>().join(" ");
+    if collapsed.is_empty() {
+        None
+    } else {
+        Some(collapsed)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -973,6 +1167,7 @@ mod tests {
             semantic_tags: Vec::new(),
             endpoints: Vec::new(),
             line_count: src.lines().count(),
+            complexity: 0,
             call_sites: Vec::new(),
         };
         extract(
@@ -1102,5 +1297,314 @@ class HomeController {
         assert_eq!(normalize_php_path(""), "/");
         assert_eq!(normalize_php_path("users"), "/users");
         assert_eq!(normalize_php_path("/users"), "/users");
+    }
+
+    fn parse_rust(src: &str) -> FileSummary {
+        let mut parser = tree_sitter::Parser::new();
+        parser
+            .set_language(&Language::Rust.ts_language())
+            .expect("load Rust grammar");
+        let tree = parser.parse(src, None).expect("parse Rust");
+        let mut summary = FileSummary {
+            path: PathBuf::from("test.rs"),
+            language: Language::Rust,
+            symbols: Vec::new(),
+            imports: Vec::new(),
+            semantic_tags: Vec::new(),
+            endpoints: Vec::new(),
+            line_count: src.lines().count(),
+            complexity: 0,
+            call_sites: Vec::new(),
+        };
+        extract(
+            Language::Rust,
+            tree.root_node(),
+            src.as_bytes(),
+            &mut summary,
+        );
+        summary
+    }
+
+    #[test]
+    fn rust_extracts_declaration_kinds() {
+        let src = r#"
+fn greet() {}
+
+struct User {
+    name: String,
+}
+
+enum Status {
+    Active,
+}
+
+trait Repo {
+    fn find(&self) -> bool;
+}
+
+impl Repo for User {
+    fn find(&self) -> bool {
+        true
+    }
+}
+
+mod util {
+    pub fn helper() {}
+}
+
+const MAX: u32 = 10;
+type UserId = u32;
+"#;
+        let summary = parse_rust(src);
+        assert_eq!(symbol_kind(&summary, "greet"), Some(&SymbolKind::Function));
+        assert_eq!(symbol_kind(&summary, "User"), Some(&SymbolKind::Struct));
+        assert_eq!(symbol_kind(&summary, "Status"), Some(&SymbolKind::Enum));
+        assert_eq!(symbol_kind(&summary, "Repo"), Some(&SymbolKind::Trait));
+        assert_eq!(symbol_kind(&summary, "util"), Some(&SymbolKind::Module));
+        assert_eq!(symbol_kind(&summary, "MAX"), Some(&SymbolKind::Constant));
+        assert_eq!(
+            symbol_kind(&summary, "UserId"),
+            Some(&SymbolKind::TypeAlias)
+        );
+        // `find` appears twice: the trait signature and the impl method.
+        let finds: Vec<_> = summary
+            .symbols
+            .iter()
+            .filter(|s| s.name == "find")
+            .collect();
+        assert_eq!(finds.len(), 2);
+        assert!(finds.iter().all(|s| s.kind == SymbolKind::Method));
+        // `helper`, inside `mod util` (not an impl block), stays a Function.
+        assert_eq!(symbol_kind(&summary, "helper"), Some(&SymbolKind::Function));
+    }
+
+    #[test]
+    fn rust_collects_use_imports() {
+        let src = r#"
+use std::collections::HashMap;
+use serde::{Deserialize, Serialize};
+use crate::types::Project as P;
+"#;
+        let summary = parse_rust(src);
+        assert_eq!(
+            summary.imports,
+            vec![
+                "std::collections::HashMap",
+                "serde::{Deserialize, Serialize}",
+                "crate::types::Project as P",
+            ]
+        );
+    }
+
+    #[test]
+    fn rust_collapses_whitespace_in_multiline_use() {
+        let src = "use crate::types::{\r\n    Foo, Bar,\r\n    Baz,\r\n};\n";
+        let summary = parse_rust(src);
+        assert_eq!(summary.imports, vec!["crate::types::{ Foo, Bar, Baz, }"]);
+    }
+
+    #[test]
+    fn rust_records_free_and_method_calls() {
+        let src = r#"
+fn run() {
+    let map = HashMap::new();
+    map.insert(1, 2);
+    greet();
+}
+"#;
+        let summary = parse_rust(src);
+        let names: Vec<_> = summary.call_sites.iter().map(|c| c.name.as_str()).collect();
+        assert!(names.contains(&"new"));
+        assert!(names.contains(&"insert"));
+        assert!(names.contains(&"greet"));
+    }
+
+    #[test]
+    fn rust_counts_branches_loops_and_short_circuit() {
+        let src = r#"
+fn check(x: i32, y: i32) -> i32 {
+    if x > 0 && y > 0 {
+        return 1;
+    }
+    for i in 0..x {
+        if i == y {
+            break;
+        }
+    }
+    while x > 0 {
+        break;
+    }
+    match x {
+        0 => 1,
+        _ => 2,
+    }
+}
+"#;
+        let summary = parse_rust(src);
+        // if (1) + && (1) + for (1) + inner if (1) + while (1) + 2 match arms.
+        assert_eq!(summary.complexity, 7);
+    }
+
+    #[test]
+    fn rust_doc_comment_attaches_to_symbol() {
+        let src = "/// Greets the caller.\nfn greet() {}\n";
+        let summary = parse_rust(src);
+        let sym = summary.symbols.iter().find(|s| s.name == "greet").unwrap();
+        assert_eq!(sym.doc_comment.as_deref(), Some("/// Greets the caller."));
+    }
+
+    fn parse(language: Language, path: &str, src: &str) -> FileSummary {
+        let mut parser = tree_sitter::Parser::new();
+        parser
+            .set_language(&language.ts_language())
+            .expect("load grammar");
+        let tree = parser.parse(src, None).expect("parse source");
+        let mut summary = FileSummary {
+            path: PathBuf::from(path),
+            language,
+            symbols: Vec::new(),
+            imports: Vec::new(),
+            semantic_tags: Vec::new(),
+            endpoints: Vec::new(),
+            line_count: src.lines().count(),
+            complexity: 0,
+            call_sites: Vec::new(),
+        };
+        extract(language, tree.root_node(), src.as_bytes(), &mut summary);
+        summary
+    }
+
+    #[test]
+    fn flat_function_has_zero_complexity() {
+        let src = "function greet(name) {\n  return `hi ${name}`;\n}\n";
+        let summary = parse(Language::JavaScript, "test.js", src);
+        assert_eq!(summary.complexity, 0);
+    }
+
+    #[test]
+    fn symbol_complexity_credits_innermost_function() {
+        let src = r#"
+function simple(x) {
+  return x + 1;
+}
+
+function complex(items) {
+  function inner(y) {
+    if (y > 0) {
+      return y;
+    }
+    return -y;
+  }
+  for (const item of items) {
+    if (item.ok) {
+      inner(item.value);
+    }
+  }
+  return items;
+}
+"#;
+        let summary = parse(Language::JavaScript, "test.js", src);
+        assert_eq!(summary.complexity, 3); // if(inner), for, if(outer)
+
+        let simple = symbol_kind_and_complexity(&summary, "simple");
+        assert_eq!(simple, Some((SymbolKind::Function, 0)));
+
+        // `inner`'s own `if` is credited to `inner`, not `complex`.
+        let inner = symbol_kind_and_complexity(&summary, "inner");
+        assert_eq!(inner, Some((SymbolKind::Function, 1)));
+
+        // `complex` keeps only its own `for`/`if`, not `inner`'s.
+        let complex = symbol_kind_and_complexity(&summary, "complex");
+        assert_eq!(complex, Some((SymbolKind::Function, 2)));
+    }
+
+    fn symbol_kind_and_complexity(
+        summary: &FileSummary,
+        name: &str,
+    ) -> Option<(SymbolKind, usize)> {
+        summary
+            .symbols
+            .iter()
+            .find(|s| s.name == name)
+            .map(|s| (s.kind.clone(), s.complexity))
+    }
+
+    #[test]
+    fn js_counts_branches_loops_and_short_circuit() {
+        let src = r#"
+function handle(req) {
+  if (req.ok) {
+    for (const x of req.items) {
+      console.log(x);
+    }
+  } else if (req.retry) {
+    while (req.retry) {
+      req.retry = false;
+    }
+  }
+  const ok = req.a && req.b || req.c;
+  const label = req.ok ? "yes" : "no";
+  try {
+    risky();
+  } catch (e) {
+    handle(e);
+  }
+  return ok ? label : null;
+}
+"#;
+        let summary = parse(Language::JavaScript, "test.js", src);
+        // if, else-if, for, while, &&, ||, ternary x2, catch = 9
+        assert_eq!(summary.complexity, 9);
+    }
+
+    #[test]
+    fn python_counts_branches_and_boolean_operators() {
+        let src = "
+def handle(req):
+    if req.ok:
+        for x in req.items:
+            print(x)
+    elif req.retry:
+        while req.retry:
+            req.retry = False
+    ok = req.a and req.b or req.c
+    label = \"yes\" if req.ok else \"no\"
+    try:
+        risky()
+    except ValueError:
+        handle_error()
+    return ok
+";
+        let summary = parse(Language::Python, "test.py", src);
+        // if, elif, for, while, and, or, conditional_expression, except = 8
+        assert_eq!(summary.complexity, 8);
+    }
+
+    #[test]
+    fn php_counts_branches_loops_and_short_circuit() {
+        let src = r#"<?php
+function handle($req) {
+    if ($req->ok) {
+        foreach ($req->items as $x) {
+            echo $x;
+        }
+    } elseif ($req->retry) {
+        while ($req->retry) {
+            $req->retry = false;
+        }
+    }
+    $ok = $req->a && $req->b || $req->c;
+    $label = $req->ok ? "yes" : "no";
+    try {
+        risky();
+    } catch (Exception $e) {
+        handle($e);
+    }
+    return $ok;
+}
+"#;
+        let summary = parse(Language::Php, "test.php", src);
+        // if, elseif, foreach, while, &&, ||, ternary, catch = 8
+        assert_eq!(summary.complexity, 8);
     }
 }
