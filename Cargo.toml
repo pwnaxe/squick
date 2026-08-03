@@ -38,7 +38,7 @@ serde_json = "1"
 serde_yaml_ng = "0.10"
 toml = "1.1"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "io-std", "sync"] }
-rmcp = { version = "2.2", features = ["server", "transport-io", "macros", "schemars"] }
+rmcp = { version = "3.1", features = ["server", "transport-io", "macros", "schemars"] }
 schemars = "1"
 walkdir = "2"
 ignore = "0.4"
