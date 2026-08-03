@@ -30,7 +30,7 @@ jobs:
       - uses: actions/checkout@v4
       # Prebuilt binary: installing cargo-audit from source pulls the gix and
       # aws-lc-sys stack, which is slow and brittle on CI.
-      - uses: taiki-e/install-action@v2
+      - uses: taiki-e/install-action@v2.85.5
         with:
           tool: cargo-audit
       - name: cargo audit
@@ -40,7 +40,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: taiki-e/install-action@v2
+      - uses: taiki-e/install-action@v2.85.5
         with:
           tool: cargo-cyclonedx
       - name: Generate SBOM
