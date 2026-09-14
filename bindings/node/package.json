@@ -16,7 +16,7 @@
     "build:debug": "napi build --platform"
   },
   "devDependencies": {
-    "@napi-rs/cli": "^2.18.4"
+    "@napi-rs/cli": "^3.9.1"
   },
   "napi": {
     "name": "squick",
